@@ -7,17 +7,17 @@ The project has two versions: a prototype using an Arduino and a more advanced v
 ### TRACKER
 #### Arduino Prototype
 🎯 Quick & Dirty Arduino sketch to detect the distance of approaching users using Ultrasonic sensor.  
-🎯 HTML file with a preview video (which plays upon click event).
-🎯 A Python script which listens to the Arduino's Serial output and triggers a click-event (which plays the video playback).
+🎯 HTML file with a preview video (which plays upon click event).  
+🎯 A Python script which listens to the Arduino's Serial output and triggers a click-event (which plays the video playback).  
 
 #### Raspberry Pi Version
-🎯 Setup Github Repo and VSCode Raspberry Pi remote-host (SSH) environment.
-🎯 Prepare HD videos for both dual-screens and single-screen.
-🚧 Implement the Python scripts for Raspberry Pi version.
-🚧 Integrate a camera to take a picture at the "scary" moment.
-🤌 Test.
-🤌 Packaging & Scenery.
-💅 Polish & Fingernails.
+🎯 Setup Github Repo and VSCode Raspberry Pi remote-host (SSH) environment.  
+🎯 Prepare HD videos for both dual-screens and single-screen.  
+🚧 Implement the Python scripts for Raspberry Pi version.  
+🚧 Integrate a camera to take a picture at the "scary" moment.  
+🤌 Test.  
+🤌 Packaging & Scenery.  
+💅 Polish & Fingernails.  
 
 
 ## PROTOTYPE VERSION
