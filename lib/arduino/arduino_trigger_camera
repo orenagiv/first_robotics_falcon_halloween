@@ -1,0 +1,55 @@
+const int IR_LED_PIN = 3;
+
+void setup() {
+  pinMode(IR_LED_PIN, OUTPUT);
+  Serial.begin(9600);
+  Serial.println("Ready to send Nikon D3300 shutter IR burst");
+}
+
+void loop() {
+  if (Serial.available() > 0) {
+    char c = Serial.read();
+
+    Serial.println("Sending IR burst sequence...");
+
+    // Burst 1: 2 ms ON at 38kHz
+    modulatedBurst(2000);
+
+    // Rest 1: 28 ms OFF
+    delay(28);
+
+    // Burst 2: 0.5 ms ON
+    modulatedBurst(500);
+
+    // Rest 2: 1.5 ms OFF
+    delayMicroseconds(1500);
+
+    // Burst 3: 0.5 ms ON
+    modulatedBurst(500);
+
+    // Rest 3: 3.5 ms OFF
+    delayMicroseconds(3500);
+
+    // Burst 4: 0.5 ms ON
+    modulatedBurst(500);
+
+    // Rest 4: 63.5 ms OFF
+    delay(63);
+
+    Serial.println("IR burst sent");
+  }
+}
+
+// Function to output a modulated 38kHz signal on IR_LED_PIN for the given duration (in microseconds)
+void modulatedBurst(unsigned int duration_us) {
+  unsigned long endTime = micros() + duration_us;
+
+  // 38kHz period is about 26.3 us (1/38kHz = 26.3 us)
+  // We'll toggle the pin ON and OFF every ~13us (half-period) for modulation
+  while (micros() < endTime) {
+    digitalWrite(IR_LED_PIN, HIGH);
+    delayMicroseconds(13);  // ON half-cycle
+    digitalWrite(IR_LED_PIN, LOW);
+    delayMicroseconds(13);  // OFF half-cycle
+  }
+}
