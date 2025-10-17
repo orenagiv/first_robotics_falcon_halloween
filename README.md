@@ -1,7 +1,27 @@
 # HALLOWEEN FRAME
 
 ## OVERVIEW
-This is an Arduino project that uses Ultrasonic sensor to detect a user getting close to a frame and trigger a spooky video to play on a connected monitor.
+The Halloween Frame is an interactive spooky display that plays a scary video when someone approaches it.  
+The project has two versions: a prototype using an Arduino and a more advanced version planned for Raspberry Pi.
+
+### TRACKER
+#### Arduino Prototype
+🎯 Quick & Dirty Arduino sketch to detect the distance of approaching users using Ultrasonic sensor.  
+🎯 HTML file with a preview video (which plays upon click event).
+🎯 A Python script which listens to the Arduino's Serial output and triggers a click-event (which plays the video playback).
+
+#### Raspberry Pi Version
+🎯 Setup Github Repo and VSCode Raspberry Pi remote-host (SSH) environment.
+🎯 Prepare HD videos for both dual-screens and single-screen.
+🚧 Implement the Python scripts for Raspberry Pi version.
+🚧 Integrate a camera to take a picture at the "scary" moment.
+🤌 Test.
+🤌 Packaging & Scenery.
+💅 Polish & Fingernails.
+
+
+## PROTOTYPE VERSION
+The initial (quick and dirty) prototype is an Arduino project that uses an Ultrasonic sensor to detect a user getting close to a frame and trigger a spooky video to play on a connected monitor.
 
 The system works in two parts:
 
@@ -11,8 +31,8 @@ The system works in two parts:
 
 The `assets/index.html` file contains a simple HTML page that plays a spooky video when the spacebar is pressed.
 
-## SETUP
-### Install Python Libraries
+### SETUP
+#### Install Python Libraries
 1. Open the Terminal app on your Mac (you can find it in Applications > Utilities or search for it with Spotlight).
 2. Install the libraries by running these two commands, pressing Enter after each one:
 ```bash
@@ -20,18 +40,18 @@ pip3 install pyserial
 pip3 install pyautogui
 ```
 
-### Find Your Arduino's Port
+#### Find Your Arduino's Port
 1. Connect your Arduino Uno to your Mac.
 2. Open the Arduino IDE.
 3. Go to the Tools > Port menu. You'll see something like /dev/cu.usbserial-210. Copy this port name exactly.
 
-### Update the Arduino Listener Script
+#### Update the Arduino Listener Script
 1. Update the `ARDUINO_PORT` in `lib/arduino_listener.py` with your Arduino's port name.
 
-### Arduino <-> Ultrasonic Sensor Wiring
+#### Arduino <-> Ultrasonic Sensor Wiring
 1. Setup the circuit per the docs/ultrasonic_circuit_tutorial.pdf (page 148).
 
-### Running the System
+#### Running the System
 1. Upload the `arduino_detect_distance.ino` sketch to your Arduino.
 2. From the terminal, start the listener:
 ```bash
@@ -39,8 +59,11 @@ python3 lib/arduino_listener.py
 ```
 3. Open `assets/index.html` in a web browser for the video display.
 
-## MISC.
+### MISC.
 Trigger Spacebar on Mac command line:
 ```
 osascript -e 'tell application "System Events" to key code 49'
 ```
+
+## RASPBERRY PI VERSION
+In progress...
