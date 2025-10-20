@@ -5,7 +5,28 @@
 # When the video ends go back to the first frame of the video.
 
 import cv2
-import RPi.GPIO as GPIO
+try:
+    import RPi.GPIO as GPIO
+except Exception:
+    # Allow running/testing on non-RPi systems by providing a dummy GPIO
+    class _DummyGPIO:
+        BCM = 'BCM'
+        IN = 'IN'
+
+        def setmode(self, mode):
+            print(f"DummyGPIO: setmode({mode})")
+
+        def setup(self, pin, mode):
+            print(f"DummyGPIO: setup(pin={pin}, mode={mode})")
+
+        def input(self, pin):
+            # Always return 0 (no motion) by default. You can change to 1 for testing.
+            return 0
+
+        def cleanup(self):
+            print("DummyGPIO: cleanup()")
+
+    GPIO = _DummyGPIO()
 import time
 import os
 import threading
@@ -26,7 +47,8 @@ class VideoPlayer:
         self.current_frame = 0
         self.total_frames = 0
         self.fps = 30
-        self.init_video()
+        # init_video returns a bool; store it so callers can verify
+        self.initialized = self.init_video()
         
     def init_video(self):
         """Initialize video capture and get video properties"""
@@ -105,6 +127,9 @@ def main():
         
         # Initialize video player
         player = VideoPlayer(VIDEO_PATH)
+        if not getattr(player, 'initialized', False):
+            print("Video player failed to initialize. Exiting.")
+            return
         
         # Show first frame initially
         player.show_first_frame()
@@ -126,11 +151,12 @@ def main():
                     
                     print("Motion detected - Playing video!")
                     last_trigger_time = current_time
-                    
-                    # Play video in a separate thread to avoid blocking motion detection
-                    video_thread = threading.Thread(target=player.play_video)
-                    video_thread.daemon = True
-                    video_thread.start()
+
+                    # Run play_video() in the main thread (or a separate process) so
+                    # OpenCV GUI calls (imshow/waitKey) run in the main thread of
+                    # that process. Using a background thread can prevent window
+                    # updates on many platforms.
+                    player.play_video()
                 
                 # Small delay to prevent excessive CPU usage
                 time.sleep(0.1)
