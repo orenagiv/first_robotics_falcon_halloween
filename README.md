@@ -66,4 +66,64 @@ osascript -e 'tell application "System Events" to key code 49'
 ```
 
 ## RASPBERRY PI VERSION
-In progress...
+### Enable VNC on Raspberry Pi
+- Connect to your Raspberry Pi with a physical keyboard, mouse and monitor.
+- Open a terminal on the Raspberry Pi.
+- Enable VNC on Raspberry Pi:
+```
+sudo raspi-config
+```
+Or via terminal:
+```
+sudo apt install realvnc-vnc-server
+sudo systemctl enable vncserver-x11-serviced.service
+sudo systemctl start vncserver-x11-serviced.service
+```
+- Install VNC Viewer on your Mac from: https://www.realvnc.com/en/connect/download/viewer/
+
+### Remote SSH Setup
+- Connect to your Raspberry Pi with a physical keyboard, mouse and monitor.
+- Open a terminal on the Raspberry Pi.
+- Check the username on your Raspberry Pi (default is "pi"):
+```
+whoami
+```
+- Enable SSH on Raspberry Pi:
+```
+sudo systemctl enable ssh
+sudo systemctl start ssh
+```
+Or:
+```
+sudo raspi-config
+```
+- Find Raspberry Pi IP address:
+```
+hostname -I
+```
+Or simply use `raspberrypi.local` if your network supports mDNS.
+- On your Mac (or Windows via Git Bash terminal), create SSH keys:
+```
+ssh-keygen -t rsa -b 4096 -f ~/.ssh/raspberry_pi.key
+```
+- Copy the public key to Raspberry Pi:
+```
+ssh-copy-id -i ~/.ssh/raspberry_pi.key.pub pi@raspberrypi.local
+```
+(You'll be prompted to enter the Raspberry Pi password, default is "raspberry".)
+- Test the SSH connection using:
+```
+ssh -i ~/.ssh/raspberry_pi.key pi@raspberrypi.local
+```
+- Install the "Remote - SSH" extension in VSCode.
+- In VSCode, press `F1`, type `Remote-SSH: Connect to Host...`, and enter:
+```
+ssh -i ~/.ssh/raspberry_pi.key pi@raspberrypi.local
+```
+- A new VSCode window will open connected to your Raspberry Pi.
+
+### Copying files to Raspberry Pi
+- Use `scp` to copy files from your Mac to Raspberry Pi:
+```
+scp -i ~/.ssh/raspberry_pi.key -r /path/to/local/folder pi@raspberrypi.local:/path/to/remote/folder
+```
