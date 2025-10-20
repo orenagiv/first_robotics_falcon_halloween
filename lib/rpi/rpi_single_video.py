@@ -3,7 +3,7 @@ import RPi.GPIO as GPIO
 import time
 
 PIR_PIN = 14
-VIDEO_PATH = "/home/volvo/Downloads/youtube_Unliving Portraits [ Ceko].mp4"
+VIDEO_PATH = "../../assets/videos/single_screen_1/UP_Madam_LivingNightmare_TV_V.mp4"
 
 # --- Setup GPIO ---
 GPIO.setmode(GPIO.BCM)

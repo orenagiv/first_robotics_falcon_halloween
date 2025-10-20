@@ -11,15 +11,12 @@ import os
 import threading
 
 # GPIO setup
-TRIGGER_PIN = 18  # GPIO pin for ultrasonic sensor trigger
-ECHO_PIN = 14     # GPIO pin for ultrasonic sensor echo
+PIR_PIN = 14  # GPIO pin for PIR motion sensor
 GPIO.setmode(GPIO.BCM)
-GPIO.setup(TRIGGER_PIN, GPIO.OUT)
-GPIO.setup(ECHO_PIN, GPIO.IN)
+GPIO.setup(PIR_PIN, GPIO.IN)
 
 # Video configuration
 VIDEO_PATH = "../../assets/videos/single_screen_1/UP_Madam_LivingNightmare_TV_V.mp4"
-MOTION_THRESHOLD = 100  # Distance threshold in cm (1 meter)
 
 class VideoPlayer:
     def __init__(self, video_path):
@@ -97,32 +94,9 @@ class VideoPlayer:
             self.cap.release()
         cv2.destroyAllWindows()
 
-def measure_distance():
-    """Measure distance using ultrasonic sensor"""
-    # Send trigger pulse
-    GPIO.output(TRIGGER_PIN, True)
-    time.sleep(0.00001)  # 10 microseconds
-    GPIO.output(TRIGGER_PIN, False)
-    
-    # Measure echo time
-    start_time = time.time()
-    stop_time = time.time()
-    
-    # Wait for echo start
-    timeout = time.time() + 1  # 1 second timeout
-    while GPIO.input(ECHO_PIN) == 0 and time.time() < timeout:
-        start_time = time.time()
-    
-    # Wait for echo end
-    timeout = time.time() + 1  # 1 second timeout
-    while GPIO.input(ECHO_PIN) == 1 and time.time() < timeout:
-        stop_time = time.time()
-    
-    # Calculate distance
-    time_elapsed = stop_time - start_time
-    distance = (time_elapsed * 34300) / 2  # Speed of sound = 343 m/s
-    
-    return distance
+def detect_motion():
+    """Detect motion using PIR sensor"""
+    return GPIO.input(PIR_PIN)
 
 def main():
     """Main function"""
@@ -141,20 +115,19 @@ def main():
         
         while True:
             try:
-                # Measure distance
-                distance = measure_distance()
+                # Check for motion
+                motion_detected = detect_motion()
                 current_time = time.time()
                 
-                # Check if motion detected within threshold and cooldown period has passed
-                if (distance < MOTION_THRESHOLD and 
-                    distance > 0 and 
+                # Check if motion detected and cooldown period has passed
+                if (motion_detected and 
                     not player.is_playing and 
                     current_time - last_trigger_time > cooldown_period):
                     
-                    print(f"Motion detected at {distance:.1f}cm - Playing video!")
+                    print("Motion detected - Playing video!")
                     last_trigger_time = current_time
                     
-                    # Play video in a separate thread to avoid blocking distance measurement
+                    # Play video in a separate thread to avoid blocking motion detection
                     video_thread = threading.Thread(target=player.play_video)
                     video_thread.daemon = True
                     video_thread.start()
