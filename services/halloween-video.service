@@ -1,0 +1,25 @@
+[Unit]
+Description=Halloween Video Player Service
+After=network.target graphical-session.target
+Wants=graphical-session.target
+
+[Service]
+Type=simple
+User=volvo
+Group=volvo
+WorkingDirectory=/home/volvo/Desktop/Development/first_robotics_falcon_halloween/lib/rpi
+ExecStart=/usr/bin/python3 /home/volvo/Desktop/Development/first_robotics_falcon_halloween/lib/rpi/rpi_vid1.py
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+# Environment variables for display (required for OpenCV GUI)
+Environment=DISPLAY=:0
+Environment=XAUTHORITY=/home/volvo/.Xauthority
+
+# Ensure the service has access to GPIO
+SupplementaryGroups=gpio
+
+[Install]
+WantedBy=graphical.target
