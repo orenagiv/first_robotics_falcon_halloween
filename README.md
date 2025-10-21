@@ -141,13 +141,21 @@ ffmpeg -i input_video.mp4 -vf scale=1280:720 -c:a copy output_video_720p.mp4
 ```
 
 ## Halloween Video Player Service
-This directory contains the systemd service configuration and installation scripts for the Halloween Video Player that runs `rpi_single_screen.py`.
+This directory contains the systemd service configuration and installation scripts for the Halloween Video Player that supports both single-screen (`rpi_single_screen.py`) and dual-screen (`rpi_dual_screen.py`) modes.
+
+### Features
+- **Single Screen Mode**: Plays one video on a single display with motion detection
+- **Dual Screen Mode**: Plays synchronized left/right videos on two displays with video set rotation
+- **Auto-rotation**: Dual screen mode cycles through 3 different video sets automatically
+- **Motion Detection**: PIR sensor triggers video playback when motion is detected
+- **Systemd Service**: Runs automatically on boot with auto-restart capability
 
 ### Files
 
-- `halloween-video.service` - The systemd service configuration file
-- `install_service.sh` - Script to install and configure the service
+- `halloween-video.service` - The systemd service configuration file (template)
+- `install_service.sh` - Script to install and configure the service for single or dual mode
 - `uninstall_service.sh` - Script to remove the service
+- `switch_mode.sh` - Script to switch between single and dual modes without reinstalling
 - `README.md` - This documentation file
 
 ### Installation on Raspberry Pi
@@ -164,20 +172,39 @@ This directory contains the systemd service configuration and installation scrip
    cd /home/volvo/Desktop/Development/first_robotics_falcon_halloween/services/
    ```
 
-4. Make the installation script executable:
+4. Make the scripts executable:
    ```bash
-   chmod +x install_service.sh
+   chmod +x install_service.sh switch_mode.sh uninstall_service.sh
    ```
 
 5. Run dos2unix to convert line endings (if needed):
    ```bash
-   dos2unix install_service.sh
+   dos2unix *.sh
    ```
 
-6. Run the installation script:
+6. Run the installation script and choose your mode:
    ```bash
    ./install_service.sh
    ```
+   Or specify the mode directly:
+   ```bash
+   ./install_service.sh single    # For single screen mode
+   ./install_service.sh dual      # For dual screen mode
+   ```
+
+### Switching Between Modes
+
+You can switch between single and dual screen modes without reinstalling:
+
+```bash
+./switch_mode.sh single    # Switch to single screen mode
+./switch_mode.sh dual      # Switch to dual screen mode
+```
+
+Or run without arguments to be prompted for your choice:
+```bash
+./switch_mode.sh
+```
 
 ### Service Management Commands
 

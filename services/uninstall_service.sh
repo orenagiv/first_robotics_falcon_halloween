@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Halloween Video Player Service Uninstallation Script
-# This script will remove the systemd service
+# This script will remove the systemd service for both single and dual screen modes
 
 set -e
 
@@ -39,3 +39,4 @@ sudo systemctl daemon-reload
 echo ""
 echo "Service uninstallation complete!"
 echo "The Halloween video player service has been removed from the system."
+echo "This removes both single and dual screen configurations."
