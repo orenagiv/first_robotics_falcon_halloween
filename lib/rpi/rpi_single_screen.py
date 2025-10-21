@@ -1,8 +1,8 @@
-# The following script will load specific video (assets/single_screen_1/UP_Madam_LivingNightmare_TV_V.mp4) and pause on the first frame.
+# The following script will load and rotate through 3 single screen videos and pause on the first frame.
 # This script is a python script that will run on Raspberry Pi.
 # We will use a motion detection sensor "GPIO" connected to pin 14.
 # When the sensor detects motion closer than one meter of range - then play the video.
-# When the video ends go back to the first frame of the video.
+# When the video ends go back to the first frame of the next video (rotating through all 3 videos).
 
 import cv2
 try:
@@ -37,11 +37,16 @@ GPIO.setmode(GPIO.BCM)
 GPIO.setup(PIR_PIN, GPIO.IN)
 
 # Video configuration
-VIDEO_PATH = "../../assets/videos/single_video_1_720p.mp4"
+VIDEO_PATHS = [
+    "../../assets/videos/single_video_1_720p.mp4",
+    "../../assets/videos/single_video_2_720p.mp4",
+    "../../assets/videos/single_video_3_720p.mp4"
+]
 
 class VideoPlayer:
-    def __init__(self, video_path):
-        self.video_path = video_path
+    def __init__(self, video_paths):
+        self.video_paths = video_paths
+        self.current_video_index = 0
         self.cap = None
         self.is_playing = False
         self.current_frame = 0
@@ -52,18 +57,20 @@ class VideoPlayer:
         
     def init_video(self):
         """Initialize video capture and get video properties"""
-        if not os.path.exists(self.video_path):
-            print(f"Error: Video file not found at {self.video_path}")
+        current_video_path = self.video_paths[self.current_video_index]
+        
+        if not os.path.exists(current_video_path):
+            print(f"Error: Video file not found at {current_video_path}")
             return False
             
-        self.cap = cv2.VideoCapture(self.video_path)
+        self.cap = cv2.VideoCapture(current_video_path)
         if not self.cap.isOpened():
             print("Error: Could not open video file")
             return False
             
         self.total_frames = int(self.cap.get(cv2.CAP_PROP_FRAME_COUNT))
         self.fps = self.cap.get(cv2.CAP_PROP_FPS)
-        print(f"Video loaded: {self.total_frames} frames at {self.fps} FPS")
+        print(f"Video {self.current_video_index + 1} loaded: {self.total_frames} frames at {self.fps} FPS")
         
         # Set up display window for true full-screen
         cv2.namedWindow('Halloween Video', cv2.WINDOW_NORMAL)
@@ -89,7 +96,7 @@ class VideoPlayer:
             return
             
         self.is_playing = True
-        print("Playing video...")
+        print(f"Playing video {self.current_video_index + 1}...")
         
         frame_delay = 1.0 / self.fps
         
@@ -107,10 +114,26 @@ class VideoPlayer:
                 break
                 
         self.is_playing = False
-        print("Video finished playing")
+        print(f"Video {self.current_video_index + 1} finished playing")
         
-        # Return to first frame
+        # Move to next video (rotate)
+        self.rotate_to_next_video()
+        
+        # Return to first frame of new video
         self.show_first_frame()
+        
+    def rotate_to_next_video(self):
+        """Rotate to the next video"""
+        # Clean up current video capture
+        if self.cap:
+            self.cap.release()
+            
+        # Move to next video (with wraparound)
+        self.current_video_index = (self.current_video_index + 1) % len(self.video_paths)
+        print(f"Rotating to video {self.current_video_index + 1}")
+        
+        # Initialize new video
+        self.init_video()
         
     def cleanup(self):
         """Clean up resources"""
@@ -128,7 +151,7 @@ def main():
         print("Initializing Halloween Video Player...")
         
         # Initialize video player
-        player = VideoPlayer(VIDEO_PATH)
+        player = VideoPlayer(VIDEO_PATHS)
         if not getattr(player, 'initialized', False):
             print("Video player failed to initialize. Exiting.")
             return
@@ -136,6 +159,7 @@ def main():
         # Show first frame initially
         player.show_first_frame()
         print("Showing first frame. Waiting for motion detection...")
+        print(f"Starting with video {player.current_video_index + 1} of {len(VIDEO_PATHS)}")
         
         last_trigger_time = 0
         cooldown_period = 2  # Seconds to wait before allowing another trigger

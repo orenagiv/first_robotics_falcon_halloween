@@ -93,10 +93,61 @@ sudo systemctl daemon-reload
 echo "Enabling Halloween video service..."
 sudo systemctl enable halloween-video.service
 
+# Make sure switch_mode.sh is executable
+echo "Setting permissions for switch_mode.sh..."
+chmod +x "$PROJECT_DIR/services/switch_mode.sh"
+
+# Create desktop shortcuts
+echo "Creating desktop shortcuts..."
+DESKTOP_DIR="/home/volvo/Desktop"
+
+# Ensure Desktop directory exists
+mkdir -p "$DESKTOP_DIR"
+
+# Create Single Screen shortcut
+cat > "$DESKTOP_DIR/Single Screen" << EOF
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Single Screen
+Comment=Switch Halloween video to single screen mode
+Exec=bash -c 'cd $PROJECT_DIR/services && ./switch_mode.sh single; echo "Press Enter to stop the service..."; read; sudo systemctl stop halloween-video.service; echo "Service stopped. Press Enter to close..."; read'
+Icon=video-display
+Terminal=true
+Categories=Multimedia;Video;
+EOF
+
+# Create Dual Screen shortcut
+cat > "$DESKTOP_DIR/Dual Screen" << EOF
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Dual Screen
+Comment=Switch Halloween video to dual screen mode
+Exec=bash -c 'cd $PROJECT_DIR/services && ./switch_mode.sh dual; echo "Press Enter to stop the service..."; read; sudo systemctl stop halloween-video.service; echo "Service stopped. Press Enter to close..."; read'
+Icon=video-display
+Terminal=true
+Categories=Multimedia;Video;
+EOF
+
+# Set proper permissions for desktop files
+chmod +x "$DESKTOP_DIR/Single Screen"
+chmod +x "$DESKTOP_DIR/Dual Screen"
+
+# Mark desktop files as trusted (for some desktop environments)
+if command -v gio >/dev/null 2>&1; then
+    gio set "$DESKTOP_DIR/Single Screen" metadata::trusted true 2>/dev/null || true
+    gio set "$DESKTOP_DIR/Dual Screen" metadata::trusted true 2>/dev/null || true
+fi
+
 echo ""
 echo "Service installation complete!"
 echo "Mode: $MODE screen"
 echo "Script: $PYTHON_SCRIPT"
+echo ""
+echo "Desktop shortcuts created:"
+echo "  Single Screen - Switch to single screen mode"
+echo "  Dual Screen - Switch to dual screen mode"
 echo ""
 echo "Available commands:"
 echo "  Start service:    sudo systemctl start halloween-video.service"
