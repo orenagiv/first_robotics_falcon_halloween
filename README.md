@@ -68,6 +68,7 @@ osascript -e 'tell application "System Events" to key code 49'
 ## RASPBERRY PI VERSION
 ### Enable VNC on Raspberry Pi
 - Connect to your Raspberry Pi with a physical keyboard, mouse and monitor.
+- Adjust the screen resolution to 1280x720 via Raspberry Pi Settings > Displays.
 - Open a terminal on the Raspberry Pi.
 - Enable VNC on Raspberry Pi:
 ```
@@ -127,16 +128,20 @@ ssh -i ~/.ssh/raspberry_pi.key pi@raspberrypi.local
 ```
 rsync -av --exclude='.*' -e "ssh -i ~/keys/raspberry_pi.key" ./ pi@raspberrypi.local:/path/to/remote/Development/first_robotics_falcon_halloween/
 ```
+- To make the rsync also delete older files - use the `--delete` flag:
+```
+rsync -av --delete --exclude='.*' -e "ssh -i ~/keys/raspberry_pi.key" ./ pi@raspberrypi.local:/path/to/remote/Development/first_robotics_falcon_halloween/
+```
 
 ### Optimize Videos Performance on Raspberry Pi
+- Make sure your Raspberry Pi was set to resolution of 1280x720.
 - Use `ffmpeg` to convert videos to 1280x720 resolution for better performance on the Raspberry Pi:
 ```bash
 ffmpeg -i input_video.mp4 -vf scale=1280:720 -c:a copy output_video_720p.mp4
 ```
 
 ## Halloween Video Player Service
-
-This directory contains the systemd service configuration and installation scripts for the Halloween Video Player that runs `rpi_vid1.py`.
+This directory contains the systemd service configuration and installation scripts for the Halloween Video Player that runs `rpi_single_screen.py`.
 
 ### Files
 

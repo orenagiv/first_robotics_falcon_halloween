@@ -26,8 +26,8 @@ if [ ! -d "$PROJECT_DIR" ]; then
 fi
 
 # Check if the Python script exists
-if [ ! -f "$PROJECT_DIR/lib/rpi/rpi_vid1.py" ]; then
-    echo "Error: rpi_vid1.py not found at $PROJECT_DIR/lib/rpi/rpi_vid1.py"
+if [ ! -f "$PROJECT_DIR/lib/rpi/rpi_single_screen.py" ]; then
+    echo "Error: rpi_single_screen.py not found at $PROJECT_DIR/lib/rpi/rpi_single_screen.py"
     exit 1
 fi
 

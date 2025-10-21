@@ -6,8 +6,8 @@ import random
 PIR_PIN = 14
 
 # Paths to your videos
-VIDEO_PATH1 = "/home/volvo/Downloads/video1.mp4"
-VIDEO_PATH2 = "/home/volvo/Downloads/video2.mp4"
+VIDEO_PATH1 = "../../assets/videos/dual_video_1_left_720p.mp4"
+VIDEO_PATH2 = "../../assets/videos/dual_video_1_right_720p.mp4"
 
 # --- Setup GPIO ---
 GPIO.setmode(GPIO.BCM)
@@ -34,7 +34,7 @@ cv2.namedWindow("Screen2", cv2.WINDOW_NORMAL)
 # Move windows to different monitors
 # Adjust X offsets if your screens are positioned differently
 cv2.moveWindow("Screen1", 0, 0)            
-cv2.moveWindow("Screen2", 1920, 0)         
+cv2.moveWindow("Screen2", 1280, 0)         
 
 # Fullscreen mode
 cv2.setWindowProperty("Screen1", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)

@@ -65,8 +65,10 @@ class VideoPlayer:
         self.fps = self.cap.get(cv2.CAP_PROP_FPS)
         print(f"Video loaded: {self.total_frames} frames at {self.fps} FPS")
         
-        # Set up display window
-        cv2.namedWindow('Halloween Video', cv2.WINDOW_FULLSCREEN)
+        # Set up display window for true full-screen
+        cv2.namedWindow('Halloween Video', cv2.WINDOW_NORMAL)
+        cv2.moveWindow('Halloween Video', 0, 0)  # Position at top-left
+        cv2.setWindowProperty('Halloween Video', cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
         return True
         
     def show_first_frame(self):
