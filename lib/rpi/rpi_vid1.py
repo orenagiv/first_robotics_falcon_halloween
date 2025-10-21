@@ -37,7 +37,7 @@ GPIO.setmode(GPIO.BCM)
 GPIO.setup(PIR_PIN, GPIO.IN)
 
 # Video configuration
-VIDEO_PATH = "../../assets/videos/single_screen_1/UP_Madam_LivingNightmare_TV_V.mp4"
+VIDEO_PATH = "../../assets/videos/single_video_1_720p.mp4"
 
 class VideoPlayer:
     def __init__(self, video_path):

@@ -33,7 +33,7 @@ fi
 
 # Install required Python packages
 echo "Installing required Python packages..."
-pip3 install --user opencv-python RPi.GPIO
+pip3 install --user --break-system-packages opencv-python RPi.GPIO
 
 # Copy service file to systemd directory
 echo "Installing service file..."

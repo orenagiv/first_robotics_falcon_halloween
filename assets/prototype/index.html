@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Halloween Video Player</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: black;
+            overflow: hidden;
+            font-family: Arial, sans-serif;
+        }
+
+        #videoContainer {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #halloweenVideo {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        #halloweenVideo:hover {
+            cursor: pointer;
+        }
+
+        #instructions {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: white;
+            text-align: center;
+            background-color: rgba(0, 0, 0, 0.7);
+            padding: 10px 20px;
+            border-radius: 5px;
+            font-size: 18px;
+            z-index: 10;
+            transition: opacity 0.3s ease;
+        }
+
+        #instructions.hidden {
+            opacity: 0;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="videoContainer">
+        <video id="halloweenVideo">
+            <source src="halloween.mov" type="video/mp4">
+            <source src="halloween.mov" type="video/quicktime">
+            Your browser does not support the video tag.
+        </video>
+    </div>
+
+    <script>
+        const video = document.getElementById('halloweenVideo');
+
+        // Function to toggle controls visibility
+        // function toggleControls() {
+        //     video.controls = !video.controls;
+        // }
+
+        // Function to enter fullscreen
+        function enterFullscreen() {
+            if (video.requestFullscreen) {
+                video.requestFullscreen();
+            } else if (video.webkitRequestFullscreen) {
+                video.webkitRequestFullscreen();
+            } else if (video.msRequestFullscreen) {
+                video.msRequestFullscreen();
+            }
+        }
+
+        // Hide controls on hover
+        video.addEventListener('mouseenter', () => {
+            video.controls = false;
+        });
+
+        // Hide controls when mouse leaves (with delay)
+        // video.addEventListener('mouseleave', () => {
+        //     setTimeout(() => {
+        //         if (!video.matches(':hover')) {
+        //             video.controls = false;
+        //         }
+        //     }, 2000);
+        // });
+
+        // Enter fullscreen on click if not already in fullscreen
+        video.addEventListener('click', () => {
+            video.controls = false;
+            if (!document.fullscreenElement && !document.webkitFullscreenElement && !document.msFullscreenElement) {
+                enterFullscreen();
+            }
+        });
+
+        // Auto-hide controls during playback
+        // video.addEventListener('play', () => {
+        //     if (video.playing && !video.paused && !video.ended) {
+        //         video.controls = false;
+        //     }
+        // });
+
+        // Hide controls when paused
+        // video.addEventListener('pause', () => {
+        //     video.controls = false;
+        // });
+
+        // Helper property to check if video is playing
+        // Object.defineProperty(HTMLMediaElement.prototype, 'playing', {
+        //     get: function () {
+        //         return !!(this.currentTime > 0 && !this.paused && !this.ended && this.readyState > 2);
+        //     }
+        // });
+    </script>
+</body>
+
+</html>
