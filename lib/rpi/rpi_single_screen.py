@@ -86,7 +86,9 @@ class VideoPlayer:
         self.cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
         ret, frame = self.cap.read()
         if ret:
-            cv2.imshow('Halloween Video', frame)
+            # Rotate frame 90 degrees clockwise for portrait orientation
+            rotated_frame = cv2.rotate(frame, cv2.ROTATE_90_CLOCKWISE)
+            cv2.imshow('Halloween Video', rotated_frame)
             cv2.waitKey(1)
             self.current_frame = 0
             
@@ -105,7 +107,9 @@ class VideoPlayer:
             if not ret:
                 break
                 
-            cv2.imshow('Halloween Video', frame)
+            # Rotate frame 90 degrees clockwise for portrait orientation
+            rotated_frame = cv2.rotate(frame, cv2.ROTATE_90_CLOCKWISE)
+            cv2.imshow('Halloween Video', rotated_frame)
             self.current_frame += 1
             
             # Check for ESC key to exit

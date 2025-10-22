@@ -122,8 +122,11 @@ class DualVideoPlayer:
         ret_right, frame_right = self.cap_right.read()
         
         if ret_left and ret_right:
-            cv2.imshow('Halloween Video Left', frame_left)
-            cv2.imshow('Halloween Video Right', frame_right)
+            # Rotate frames 90 degrees clockwise for portrait orientation
+            rotated_left = cv2.rotate(frame_left, cv2.ROTATE_90_CLOCKWISE)
+            rotated_right = cv2.rotate(frame_right, cv2.ROTATE_90_CLOCKWISE)
+            cv2.imshow('Halloween Video Left', rotated_left)
+            cv2.imshow('Halloween Video Right', rotated_right)
             cv2.waitKey(1)
             self.current_frame = 0
             
@@ -145,9 +148,13 @@ class DualVideoPlayer:
             if not ret_left or not ret_right:
                 break
                 
+            # Rotate frames 90 degrees clockwise for portrait orientation
+            rotated_left = cv2.rotate(frame_left, cv2.ROTATE_90_CLOCKWISE)
+            rotated_right = cv2.rotate(frame_right, cv2.ROTATE_90_CLOCKWISE)
+            
             # Display both frames
-            cv2.imshow('Halloween Video Left', frame_left)
-            cv2.imshow('Halloween Video Right', frame_right)
+            cv2.imshow('Halloween Video Left', rotated_left)
+            cv2.imshow('Halloween Video Right', rotated_right)
             self.current_frame += 1
             
             # Check for ESC key to exit
