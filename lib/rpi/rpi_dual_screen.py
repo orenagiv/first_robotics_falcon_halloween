@@ -5,7 +5,10 @@
 # When the videos end go back to the first frame of the videos.
 # The script rotates between 3 sets of dual videos: dual_video_1, dual_video_2, dual_video_3
 
-import cv2
+# Using VLC for better performance and audio support
+# Note: For proper dual-screen positioning, ensure X11 environment is configured for dual displays
+# The xrandr commands in configure_display() should position screens correctly
+
 try:
     import RPi.GPIO as GPIO
 except Exception:
@@ -30,32 +33,43 @@ except Exception:
     GPIO = _DummyGPIO()
 import time
 import os
-import threading
 import subprocess
+import signal
+import vlc
+
+# Global flag for graceful shutdown
+shutdown_requested = False
+
+def signal_handler(signum, frame):
+    """Handle termination signals gracefully"""
+    global shutdown_requested
+    print(f"\nReceived signal {signum}. Shutting down gracefully...")
+    shutdown_requested = True
 
 def configure_display():
-    """Configure display resolution and orientation for portrait mode"""
+    """Configure dual display resolution for portrait mode videos on dual screens"""
     try:
-        # Set resolution to 1280x720
-        subprocess.run(['xrandr', '--output', 'HDMI-1', '--mode', '1280x720'], check=True)
-        print("Display resolution set to 1280x720")
+        # Configure first screen (HDMI-1) for left video - 720x1280 portrait
+        subprocess.run(['xrandr', '--output', 'HDMI-1', '--mode', '720x1280'], check=True)
+        print("Left display (HDMI-1) resolution set to 720x1280 (portrait)")
         
-        # Rotate to left (portrait mode)
-        subprocess.run(['xrandr', '--output', 'HDMI-1', '--rotate', 'left'], check=True)
-        print("Display orientation set to portrait (left rotation)")
+        # Configure second screen (HDMI-2) for right video - 720x1280 portrait
+        # Position it to the right of the first screen
+        subprocess.run(['xrandr', '--output', 'HDMI-2', '--mode', '720x1280', '--right-of', 'HDMI-1'], check=True)
+        print("Right display (HDMI-2) resolution set to 720x1280 (portrait) and positioned to the right")
         
     except subprocess.CalledProcessError as e:
-        print(f"Warning: Could not configure display: {e}")
-        print("Attempting with HDMI-2...")
+        print(f"Warning: Could not configure dual displays: {e}")
+        print("Attempting fallback configuration...")
         try:
-            # Try HDMI-2 if HDMI-1 fails
-            subprocess.run(['xrandr', '--output', 'HDMI-2', '--mode', '1280x720'], check=True)
-            subprocess.run(['xrandr', '--output', 'HDMI-2', '--rotate', 'left'], check=True)
-            print("Display configured on HDMI-2")
+            # Fallback: try to configure displays separately
+            subprocess.run(['xrandr', '--output', 'HDMI-1', '--mode', '720x1280'], check=True)
+            subprocess.run(['xrandr', '--output', 'HDMI-2', '--mode', '720x1280'], check=True)
+            print("Fallback display configuration applied")
         except subprocess.CalledProcessError as e2:
-            print(f"Warning: Could not configure display on HDMI-2: {e2}")
+            print(f"Warning: Fallback display configuration failed: {e2}")
     except Exception as e:
-        print(f"Warning: Unexpected error configuring display: {e}")
+        print(f"Warning: Unexpected error configuring displays: {e}")
 
 # GPIO setup
 PIR_PIN = 14  # GPIO pin for PIR motion sensor
@@ -63,161 +77,350 @@ GPIO.setmode(GPIO.BCM)
 GPIO.setup(PIR_PIN, GPIO.IN)
 
 # Video configuration
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 VIDEO_SETS = [
     {
-        'left': "../../assets/videos/dual_video_1_left_720p.mp4",
-        'right': "../../assets/videos/dual_video_1_right_720p.mp4"
+        'left': os.path.join(SCRIPT_DIR, "../../assets/videos/single_video_1_720x1280p.mp4"),
+        'right': os.path.join(SCRIPT_DIR, "../../assets/videos/single_video_2_720x1280p.mp4")
     },
-    {
-        'left': "../../assets/videos/dual_video_2_left_720p.mp4",
-        'right': "../../assets/videos/dual_video_2_right_720p.mp4"
-    },
-    {
-        'left': "../../assets/videos/dual_video_3_left_720p.mp4",
-        'right': "../../assets/videos/dual_video_3_right_720p.mp4"
-    }
+    # {
+    #     'left': os.path.join(SCRIPT_DIR, "../../assets/videos/dual_video_1_left_720x1280p.mp4"),
+    #     'right': os.path.join(SCRIPT_DIR, "../../assets/videos/dual_video_1_right_720x1280p.mp4")
+    # },
+    # {
+    #     'left': os.path.join(SCRIPT_DIR, "../../assets/videos/dual_video_2_left_720x1280p.mp4"),
+    #     'right': os.path.join(SCRIPT_DIR, "../../assets/videos/dual_video_2_right_720x1280p.mp4")
+    # },
+    # {
+    #     'left': os.path.join(SCRIPT_DIR, "../../assets/videos/dual_video_3_left_720x1280p.mp4"),
+    #     'right': os.path.join(SCRIPT_DIR, "../../assets/videos/dual_video_3_right_720x1280p.mp4")
+    # }
 ]
+
+# Debug: Print the video paths to verify they're correct
+print(f"Script directory: {SCRIPT_DIR}")
+for i, video_set in enumerate(VIDEO_SETS):
+    print(f"Video set {i+1} left path: {video_set['left']}")
+    print(f"Video set {i+1} left exists: {os.path.exists(video_set['left'])}")
+    print(f"Video set {i+1} right path: {video_set['right']}")
+    print(f"Video set {i+1} right exists: {os.path.exists(video_set['right'])}")
 
 class DualVideoPlayer:
     def __init__(self, video_sets):
+        print("Initializing DualVideoPlayer...")
         self.video_sets = video_sets
         self.current_set_index = 0
-        self.cap_left = None
-        self.cap_right = None
         self.is_playing = False
-        self.current_frame = 0
-        self.total_frames = 0
-        self.fps = 30
-        # init_video returns a bool; store it so callers can verify
-        self.initialized = self.init_video()
+        self.vlc_instance_left = None
+        self.vlc_instance_right = None
+        self.vlc_player_left = None
+        self.vlc_player_right = None
         
-    def init_video(self):
-        """Initialize video captures for current video set and get video properties"""
-        current_set = self.video_sets[self.current_set_index]
+        # Check if video files exist
+        print("Checking video files...")
+        self.initialized = self._check_videos()
+        if self.initialized:
+            print("Videos found, starting VLC instances...")
+            vlc_started = self._start_vlc_instances()
+            if not vlc_started:
+                print("Failed to start VLC instances, marking as not initialized")
+                self.initialized = False
+        else:
+            print("Video check failed")
         
-        # Check if both video files exist
-        if not os.path.exists(current_set['left']):
-            print(f"Error: Left video file not found at {current_set['left']}")
-            return False
-        if not os.path.exists(current_set['right']):
-            print(f"Error: Right video file not found at {current_set['right']}")
-            return False
-            
-        # Initialize both video captures
-        self.cap_left = cv2.VideoCapture(current_set['left'])
-        self.cap_right = cv2.VideoCapture(current_set['right'])
-        
-        if not self.cap_left.isOpened():
-            print("Error: Could not open left video file")
-            return False
-        if not self.cap_right.isOpened():
-            print("Error: Could not open right video file")
-            return False
-            
-        # Get video properties (assuming both videos have same properties)
-        self.total_frames = int(self.cap_left.get(cv2.CAP_PROP_FRAME_COUNT))
-        self.fps = self.cap_left.get(cv2.CAP_PROP_FPS)
-        print(f"Video set {self.current_set_index + 1} loaded: {self.total_frames} frames at {self.fps} FPS")
-        
-        # Set up display windows for dual screens
-        cv2.namedWindow('Halloween Video Left', cv2.WINDOW_NORMAL)
-        cv2.namedWindow('Halloween Video Right', cv2.WINDOW_NORMAL)
-        
-        # Position windows for dual screen setup
-        # Assuming two screens side by side at 1280x720 resolution
-        cv2.moveWindow('Halloween Video Left', 0, 0)  # Left screen
-        cv2.moveWindow('Halloween Video Right', 1280, 0)  # Right screen
-        
-        # Set to fullscreen
-        cv2.setWindowProperty('Halloween Video Left', cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
-        cv2.setWindowProperty('Halloween Video Right', cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
+    def _check_videos(self):
+        """Check if all video files exist"""
+        for i, video_set in enumerate(self.video_sets):
+            if not os.path.exists(video_set['left']):
+                print(f"Error: Left video file not found at {video_set['left']}")
+                return False
+            if not os.path.exists(video_set['right']):
+                print(f"Error: Right video file not found at {video_set['right']}")
+                return False
+            print(f"Video set {i + 1} found: left={video_set['left']}, right={video_set['right']}")
         return True
-        
+    
+    def _start_vlc_instances(self):
+        """Start VLC instances for both left and right screens using python-vlc"""
+        try:
+            # Check if VLC is available
+            try:
+                vlc.Instance()
+                print("VLC is available")
+            except Exception as e:
+                print(f"VLC is not available or not installed: {e}")
+                return False
+            
+            # Create VLC instance for left screen - windowed mode first, then position
+            self.vlc_instance_left = vlc.Instance([
+                '--intf', 'dummy',  # No interface
+                '--no-video-title-show',  # Don't show video title
+                '--no-osd',         # No on-screen display
+                '--video-on-top',   # Ensure video stays on top
+                '--no-video-deco',  # No window decorations
+                '--no-embedded-video',  # Don't embed video in interface
+                '--no-qt-privacy-ask',  # Don't ask for privacy settings
+                '--aout', 'alsa',   # Use ALSA audio output (common on Raspberry Pi)
+                # '--no-audio',
+                '--quiet'           # Reduce console output
+            ])
+            
+            # Create VLC instance for right screen - windowed mode first, then position
+            self.vlc_instance_right = vlc.Instance([
+                '--intf', 'dummy',  # No interface
+                '--no-video-title-show',  # Don't show video title
+                '--no-osd',         # No on-screen display
+                '--video-on-top',   # Ensure video stays on top
+                '--no-video-deco',  # No window decorations
+                '--no-embedded-video',  # Don't embed video in interface
+                '--no-qt-privacy-ask',  # Don't ask for privacy settings
+                '--aout', 'alsa',   # Use ALSA audio output (common on Raspberry Pi)
+                # '--no-audio',
+                '--quiet'           # Reduce console output
+            ])
+            
+            # Create media players
+            self.vlc_player_left = self.vlc_instance_left.media_player_new()
+            self.vlc_player_right = self.vlc_instance_right.media_player_new()
+            
+            # Don't set fullscreen immediately - we'll position windows first when playing
+
+            # Set volume to 100% for left player (audio), 0% for right player (no audio to avoid duplicate)
+            self.vlc_player_left.audio_set_volume(100)
+            self.vlc_player_right.audio_set_volume(100)  # Mute right player to avoid audio overlap
+            print("VLC instances created: Left with audio (100%), Right muted")
+            print("Window positioning will be handled when videos are played")
+            
+            print("VLC instances and players created successfully")
+            return True
+            
+        except Exception as e:
+            print(f"Error starting VLC instances: {e}")
+            return False
+    
+    def _position_and_fullscreen_videos(self):
+        """Position video windows on correct displays and set fullscreen"""
+        try:
+            print("Positioning video windows on dual screens...")
+            
+            # Wait a moment for windows to appear
+            time.sleep(1.0)
+            
+            # Method 1: Try using xdotool to position windows
+            try:
+                # Get all VLC windows
+                result = subprocess.run(['xdotool', 'search', '--class', 'vlc'], 
+                                      capture_output=True, text=True, check=True)
+                window_ids = result.stdout.strip().split('\n')
+                
+                if len(window_ids) >= 2:
+                    # Move first VLC window to left screen (0,0)
+                    subprocess.run(['xdotool', 'windowmove', window_ids[0], '0', '0'], check=True)
+                    # Move second VLC window to right screen (720,0) 
+                    subprocess.run(['xdotool', 'windowmove', window_ids[1], '720', '0'], check=True)
+                    print(f"Positioned windows using xdotool: left at (0,0), right at (720,0)")
+                    
+                    # Now set both to fullscreen
+                    self.vlc_player_left.set_fullscreen(True)
+                    self.vlc_player_right.set_fullscreen(True)
+                    print("Set both videos to fullscreen")
+                    return True
+                else:
+                    print(f"Found {len(window_ids)} VLC windows, expected 2")
+                    
+            except (subprocess.CalledProcessError, FileNotFoundError) as e:
+                print(f"xdotool positioning failed: {e}")
+                
+            # Method 2: Fallback - try using wmctrl if available
+            try:
+                # List all windows to find VLC windows
+                result = subprocess.run(['wmctrl', '-l'], capture_output=True, text=True, check=True)
+                vlc_windows = [line for line in result.stdout.split('\n') if 'vlc' in line.lower()]
+                
+                if len(vlc_windows) >= 2:
+                    # Extract window IDs and move them
+                    window_id_1 = vlc_windows[0].split()[0]
+                    window_id_2 = vlc_windows[1].split()[0]
+                    
+                    # Move windows to different screens
+                    subprocess.run(['wmctrl', '-i', '-r', window_id_1, '-e', '0,0,0,720,1280'], check=True)
+                    subprocess.run(['wmctrl', '-i', '-r', window_id_2, '-e', '0,720,0,720,1280'], check=True)
+                    print("Positioned windows using wmctrl")
+                    
+                    # Set fullscreen
+                    self.vlc_player_left.set_fullscreen(True)
+                    self.vlc_player_right.set_fullscreen(True)
+                    return True
+                    
+            except (subprocess.CalledProcessError, FileNotFoundError) as e:
+                print(f"wmctrl positioning failed: {e}")
+            
+            # Method 3: Fallback - just set fullscreen and hope for the best
+            print("Window positioning tools not available, setting fullscreen directly")
+            self.vlc_player_left.set_fullscreen(True)
+            self.vlc_player_right.set_fullscreen(True)
+            return True
+                    
+        except Exception as e:
+            print(f"Error in positioning videos: {e}")
+            # Still try to set fullscreen as fallback
+            try:
+                self.vlc_player_left.set_fullscreen(True)
+                self.vlc_player_right.set_fullscreen(True)
+            except:
+                pass
+            return False
+    
+    def set_fullscreen(self):
+        """Set both players to fullscreen mode with proper positioning"""
+        try:
+            self._position_and_fullscreen_videos()
+        except Exception as e:
+            print(f"Error setting fullscreen: {e}")
+    
     def show_first_frame(self):
-        """Display the first frame of both videos"""
-        if self.cap_left is None or self.cap_right is None:
-            return
+        """Show the first frame of current video set and pause"""
+        if not self.initialized:
+            return False
             
-        # Set both videos to first frame
-        self.cap_left.set(cv2.CAP_PROP_POS_FRAMES, 0)
-        self.cap_right.set(cv2.CAP_PROP_POS_FRAMES, 0)
+        current_set = self.video_sets[self.current_set_index]
+        print(f"Showing first frame of video set {self.current_set_index + 1}")
         
-        # Read and display first frames
-        ret_left, frame_left = self.cap_left.read()
-        ret_right, frame_right = self.cap_right.read()
-        
-        if ret_left and ret_right:
-            # Rotate frames 90 degrees clockwise for portrait orientation
-            rotated_left = cv2.rotate(frame_left, cv2.ROTATE_90_CLOCKWISE)
-            rotated_right = cv2.rotate(frame_right, cv2.ROTATE_90_CLOCKWISE)
-            cv2.imshow('Halloween Video Left', rotated_left)
-            cv2.imshow('Halloween Video Right', rotated_right)
-            cv2.waitKey(1)
-            self.current_frame = 0
+        try:
+            # Create media for current video set
+            media_left = self.vlc_instance_left.media_new(current_set['left'])
+            media_right = self.vlc_instance_right.media_new(current_set['right'])
             
+            self.vlc_player_left.set_media(media_left)
+            self.vlc_player_right.set_media(media_right)
+            
+            # Start playing to load the first frame
+            self.vlc_player_left.play()
+            self.vlc_player_right.play()
+            
+            # Position windows and set fullscreen
+            self._position_and_fullscreen_videos()
+            
+            # Wait a moment for the videos to start and positioning to take effect
+            time.sleep(1.0)
+            
+            # Pause to show only the first frame
+            self.vlc_player_left.pause()
+            self.vlc_player_right.pause()
+            
+            print(f"First frames displayed for video set {self.current_set_index + 1}")
+            return True
+            
+        except Exception as e:
+            print(f"Error showing first frame: {e}")
+            return False
+    
     def play_video(self):
-        """Play both videos simultaneously from current position"""
-        if self.cap_left is None or self.cap_right is None or self.is_playing:
+        """Play the current video set from start to finish"""
+        if self.is_playing:
             return
             
+        if not self.initialized:
+            return
+            
+        current_set = self.video_sets[self.current_set_index]
+        print(f"Playing video set {self.current_set_index + 1}: left={current_set['left']}, right={current_set['right']}")
+        
         self.is_playing = True
-        print(f"Playing video set {self.current_set_index + 1}...")
         
-        frame_delay = 1.0 / self.fps
-        
-        while self.is_playing and self.current_frame < self.total_frames:
-            # Read frames from both videos
-            ret_left, frame_left = self.cap_left.read()
-            ret_right, frame_right = self.cap_right.read()
+        try:
+            # Create media for current video set
+            media_left = self.vlc_instance_left.media_new(current_set['left'])
+            media_right = self.vlc_instance_right.media_new(current_set['right'])
             
-            if not ret_left or not ret_right:
+            self.vlc_player_left.set_media(media_left)
+            self.vlc_player_right.set_media(media_right)
+            
+            # Start playing both videos simultaneously
+            self.vlc_player_left.play()
+            self.vlc_player_right.play()
+            
+            # Position windows and set fullscreen for playback
+            self._position_and_fullscreen_videos()
+            
+            # Wait for videos to finish playing
+            self._wait_for_videos_end()
+            
+            print(f"Video set {self.current_set_index + 1} finished playing")
+            
+        except Exception as e:
+            print(f"Error playing videos: {e}")
+        finally:
+            self.is_playing = False
+            # Move to next video set
+            self._rotate_to_next_set()
+    
+    def _wait_for_videos_end(self):
+        """Wait for both videos to finish playing"""
+        print("Waiting for videos to finish...")
+        
+        # Wait for the videos to start
+        time.sleep(1)
+        
+        while not shutdown_requested and self.is_playing:
+            state_left = self.vlc_player_left.get_state()
+            state_right = self.vlc_player_right.get_state()
+            
+            # Check if both videos have ended
+            if (state_left == vlc.State.Ended or state_left == vlc.State.Error or state_left == vlc.State.Stopped) and \
+               (state_right == vlc.State.Ended or state_right == vlc.State.Error or state_right == vlc.State.Stopped):
+                print("Both videos finished")
                 break
                 
-            # Rotate frames 90 degrees clockwise for portrait orientation
-            rotated_left = cv2.rotate(frame_left, cv2.ROTATE_90_CLOCKWISE)
-            rotated_right = cv2.rotate(frame_right, cv2.ROTATE_90_CLOCKWISE)
-            
-            # Display both frames
-            cv2.imshow('Halloween Video Left', rotated_left)
-            cv2.imshow('Halloween Video Right', rotated_right)
-            self.current_frame += 1
-            
-            # Check for ESC key to exit
-            key = cv2.waitKey(int(frame_delay * 1000)) & 0xFF
-            if key == 27:  # ESC key
-                break
-                
-        self.is_playing = False
-        print(f"Video set {self.current_set_index + 1} finished playing")
-        
-        # Move to next video set (rotate)
-        self.rotate_to_next_set()
-        
-        # Return to first frame of new set
-        self.show_first_frame()
-        
-    def rotate_to_next_set(self):
-        """Rotate to the next video set"""
-        # Clean up current video captures
-        if self.cap_left:
-            self.cap_left.release()
-        if self.cap_right:
-            self.cap_right.release()
-            
-        # Move to next set (with wraparound)
+            # Check every 0.1 seconds
+            time.sleep(0.1)
+    
+    def _rotate_to_next_set(self):
+        """Move to the next video set in the sequence"""
         self.current_set_index = (self.current_set_index + 1) % len(self.video_sets)
-        print(f"Rotating to video set {self.current_set_index + 1}")
-        
-        # Initialize new video set
-        self.init_video()
-        
+        print(f"Rotated to video set {self.current_set_index + 1}")
+    
     def cleanup(self):
         """Clean up resources"""
-        if self.cap_left:
-            self.cap_left.release()
-        if self.cap_right:
-            self.cap_right.release()
-        cv2.destroyAllWindows()
+        self.is_playing = False
+        
+        if self.vlc_player_left:
+            try:
+                self.vlc_player_left.stop()
+                self.vlc_player_left.release()
+                print("Left VLC player stopped and released")
+            except Exception as e:
+                print(f"Error during left VLC player cleanup: {e}")
+            finally:
+                self.vlc_player_left = None
+        
+        if self.vlc_player_right:
+            try:
+                self.vlc_player_right.stop()
+                self.vlc_player_right.release()
+                print("Right VLC player stopped and released")
+            except Exception as e:
+                print(f"Error during right VLC player cleanup: {e}")
+            finally:
+                self.vlc_player_right = None
+        
+        if self.vlc_instance_left:
+            try:
+                self.vlc_instance_left.release()
+                print("Left VLC instance released")
+            except Exception as e:
+                print(f"Error during left VLC instance cleanup: {e}")
+            finally:
+                self.vlc_instance_left = None
+                
+        if self.vlc_instance_right:
+            try:
+                self.vlc_instance_right.release()
+                print("Right VLC instance released")
+            except Exception as e:
+                print(f"Error during right VLC instance cleanup: {e}")
+            finally:
+                self.vlc_instance_right = None
 
 def detect_motion():
     """Detect motion using PIR sensor"""
@@ -225,26 +428,59 @@ def detect_motion():
 
 def main():
     """Main function"""
+    global shutdown_requested
+    
+    # Set up signal handlers for graceful shutdown
+    signal.signal(signal.SIGTERM, signal_handler)
+    signal.signal(signal.SIGINT, signal_handler)
+    
     try:
         print("Initializing Halloween Dual Video Player...")
+        print(f"Python version: {subprocess.run(['python3', '--version'], capture_output=True, text=True).stdout.strip()}")
+        
+        # Check if VLC is available
+        try:
+            vlc.Instance()
+            print("VLC library is available")
+        except Exception as e:
+            print(f"Error: VLC not available. Please install VLC and python-vlc.")
+            print(f"Install with: pip install python-vlc")
+            return
         
         # Configure display resolution and orientation
         configure_display()
         
         # Initialize dual video player
+        print("Creating dual video player instance...")
         player = DualVideoPlayer(VIDEO_SETS)
-        if not getattr(player, 'initialized', False):
+        if not player.initialized:
             print("Dual video player failed to initialize. Exiting.")
             return
         
+        print("Dual video player initialized successfully")
+        
         # Show first frame initially
-        player.show_first_frame()
+        print("Attempting to show initial first frames...")
+        for attempt in range(3):  # Try up to 3 times
+            print(f"First frame attempt {attempt + 1}...")
+            if player.show_first_frame():
+                print("Initial first frames displayed successfully")
+                break
+            else:
+                print(f"Attempt {attempt + 1} failed, retrying...")
+                time.sleep(2)
+        else:
+            print("Warning: Failed to show initial first frames after 3 attempts")
+            # Continue anyway - maybe the videos will display when motion is detected
+            
         print("Showing first frames. Waiting for motion detection...")
+        print(f"Starting with video set {player.current_set_index + 1} of {len(VIDEO_SETS)}")
         
         last_trigger_time = 0
-        cooldown_period = 2  # Seconds to wait before allowing another trigger
+        cooldown_period = 3  # Seconds to wait before allowing another trigger
+        last_debug_time = 0  # Track debug output timing
         
-        while True:
+        while not shutdown_requested:
             try:
                 # Check for motion
                 motion_detected = detect_motion()
@@ -258,14 +494,23 @@ def main():
                     print("Motion detected - Playing dual videos!")
                     last_trigger_time = current_time
 
-                    # Run play_video() in the main thread (or a separate process) so
-                    # OpenCV GUI calls (imshow/waitKey) run in the main thread of
-                    # that process. Using a background thread can prevent window
-                    # updates on many platforms.
+                    # Play the videos (this will block until videos finish)
                     player.play_video()
+                    
+                    # After videos finish, show the first frame of the next video set
+                    print(f"Videos finished. Now showing video set {player.current_set_index + 1}")
+                    if not player.show_first_frame():
+                        print("Warning: Failed to show first frames after video playback")
+                    else:
+                        print("Ready for next motion detection...")
+                
+                # Debug output every 10 seconds to show status
+                if current_time - last_debug_time >= 10:
+                    print(f"Status: Motion={motion_detected}, Playing={player.is_playing}, Video_set={player.current_set_index + 1}")
+                    last_debug_time = current_time
                 
                 # Small delay to prevent excessive CPU usage
-                time.sleep(0.1)
+                time.sleep(0.5)
                 
             except KeyboardInterrupt:
                 print("\nShutting down...")
@@ -277,8 +522,9 @@ def main():
     except Exception as e:
         print(f"Error initializing: {e}")
     finally:
-        # Cleanup
-        player.cleanup()
+        # Clean up
+        if 'player' in locals():
+            player.cleanup()
         GPIO.cleanup()
         print("Cleanup complete")
 

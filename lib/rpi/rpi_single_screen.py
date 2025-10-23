@@ -65,8 +65,8 @@ GPIO.setup(PIR_PIN, GPIO.IN)
 # Video configuration
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 VIDEO_PATHS = [
-    os.path.join(SCRIPT_DIR, "../../assets/videos/single_video_1_720x1280p.mp4"),
-    os.path.join(SCRIPT_DIR, "../../assets/videos/single_video_2_720x1280p.mp4"),
+    # os.path.join(SCRIPT_DIR, "../../assets/videos/single_video_1_720x1280p.mp4"),
+    # os.path.join(SCRIPT_DIR, "../../assets/videos/single_video_2_720x1280p.mp4"),
     os.path.join(SCRIPT_DIR, "../../assets/videos/single_video_3_720x1280p.mp4")
 ]
 
@@ -128,6 +128,7 @@ class SimpleVideoPlayer:
                 '--no-embedded-video',  # Don't embed video in interface
                 '--no-qt-privacy-ask',  # Don't ask for privacy settings
                 '--aout', 'alsa',   # Use ALSA audio output (common on Raspberry Pi)
+                # '--no-audio',
                 '--quiet'           # Reduce console output
             ])
             
@@ -136,10 +137,10 @@ class SimpleVideoPlayer:
             
             # Explicitly set fullscreen mode
             self.vlc_player.set_fullscreen(True)
-            
-            # Set volume to 10% (VLC volume range is 0-100)
-            self.vlc_player.audio_set_volume(50)
-            print("Audio enabled with volume set to 10%")
+
+            # Set volume to 100% (VLC volume range is 0-100)
+            self.vlc_player.audio_set_volume(100)
+            print("Audio enabled with volume set to 100%")
             
             print("VLC instance and player created successfully")
             return True

@@ -73,6 +73,11 @@ fi
 echo "Installing required Python packages..."
 pip3 install --user --break-system-packages opencv-python RPi.GPIO
 
+# Install VLC media player and Python VLC bindings
+echo "Installing VLC media player and Python VLC bindings..."
+sudo apt update
+sudo apt install -y vlc python3-vlc
+
 # Copy service file to systemd directory
 echo "Installing service file..."
 # Create a temporary service file with the correct script path
