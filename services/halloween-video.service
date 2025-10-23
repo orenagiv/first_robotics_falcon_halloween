@@ -14,12 +14,16 @@ RestartSec=10
 StandardOutput=journal
 StandardError=journal
 
-# Environment variables for display (required for OpenCV GUI)
+# Timeout settings for graceful shutdown (reduced from 15s since VLC shuts down faster than OpenCV)
+TimeoutStopSec=5
+KillMode=process
+
+# Environment variables for display (required for VLC video output)
 Environment=DISPLAY=:0
 Environment=XAUTHORITY=/home/volvo/.Xauthority
 
-# Ensure the service has access to GPIO
-SupplementaryGroups=gpio
+# Ensure the service has access to GPIO and audio
+SupplementaryGroups=gpio audio video
 
 [Install]
 WantedBy=graphical.target

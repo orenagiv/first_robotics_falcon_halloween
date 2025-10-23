@@ -137,7 +137,12 @@ rsync -av --delete --exclude='.*' -e "ssh -i ~/keys/raspberry_pi.key" ./ pi@rasp
 - Make sure your Raspberry Pi was set to resolution of 1280x720.
 - Use `ffmpeg` to convert videos to 1280x720 resolution for better performance on the Raspberry Pi:
 ```bash
-ffmpeg -i input_video.mp4 -vf scale=1280:720 -c:a copy output_video_720p.mp4
+ffmpeg -i input_video.mp4 -vf scale=1280:720 -c:a copy output_video_1280x720p.mp4
+```
+
+To rotate videos to portrait mode (720x1280):
+```bash
+ffmpeg -i input_video_1280x720p.mp4 -vf "transpose=1" -c:a copy output_video_720x1280p.mp4
 ```
 
 ## Halloween Video Player Service
