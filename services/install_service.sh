@@ -89,9 +89,8 @@ sudo usermod -a -G gpio volvo
 echo "Reloading systemd daemon..."
 sudo systemctl daemon-reload
 
-# Enable the service
-echo "Enabling Halloween video service..."
-sudo systemctl enable halloween-video.service
+# Note: Service is installed but NOT enabled for auto-start
+echo "Service installed but NOT enabled for auto-start on boot"
 
 # Make sure switch_mode.sh is executable
 echo "Setting permissions for switch_mode.sh..."
@@ -155,7 +154,8 @@ echo "  Stop service:     sudo systemctl stop halloween-video.service"
 echo "  Restart service:  sudo systemctl restart halloween-video.service"
 echo "  Check status:     sudo systemctl status halloween-video.service"
 echo "  View logs:        sudo journalctl -u halloween-video.service -f"
-echo "  Disable service:  sudo systemctl disable halloween-video.service"
+echo "  Enable auto-start: sudo systemctl enable halloween-video.service"
+echo "  Disable auto-start: sudo systemctl disable halloween-video.service"
 echo ""
-echo "The service will automatically start on boot."
+echo "The service will NOT automatically start on boot."
 echo "To start it now, run: sudo systemctl start halloween-video.service"
