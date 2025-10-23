@@ -30,6 +30,31 @@ except Exception:
 import time
 import os
 import threading
+import subprocess
+
+def configure_display():
+    """Configure display resolution and orientation for portrait mode"""
+    try:
+        # Set resolution to 1280x720
+        subprocess.run(['xrandr', '--output', 'HDMI-1', '--mode', '1280x720'], check=True)
+        print("Display resolution set to 1280x720")
+        
+        # Rotate to left (portrait mode)
+        subprocess.run(['xrandr', '--output', 'HDMI-1', '--rotate', 'left'], check=True)
+        print("Display orientation set to portrait (left rotation)")
+        
+    except subprocess.CalledProcessError as e:
+        print(f"Warning: Could not configure display: {e}")
+        print("Attempting with HDMI-2...")
+        try:
+            # Try HDMI-2 if HDMI-1 fails
+            subprocess.run(['xrandr', '--output', 'HDMI-2', '--mode', '1280x720'], check=True)
+            subprocess.run(['xrandr', '--output', 'HDMI-2', '--rotate', 'left'], check=True)
+            print("Display configured on HDMI-2")
+        except subprocess.CalledProcessError as e2:
+            print(f"Warning: Could not configure display on HDMI-2: {e2}")
+    except Exception as e:
+        print(f"Warning: Unexpected error configuring display: {e}")
 
 # GPIO setup
 PIR_PIN = 14  # GPIO pin for PIR motion sensor
@@ -153,6 +178,9 @@ def main():
     """Main function"""
     try:
         print("Initializing Halloween Video Player...")
+        
+        # Configure display resolution and orientation
+        configure_display()
         
         # Initialize video player
         player = VideoPlayer(VIDEO_PATHS)
