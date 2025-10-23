@@ -218,18 +218,18 @@ class SimpleVideoPlayer:
         try:
             # Clear the playlist and add the current video
             self._send_vlc_command("clear")
-            time.sleep(0.2)  # Small delay after clear
+            time.sleep(0.1)  # Small delay after clear
             self._send_vlc_command(f"add {current_video}")
-            time.sleep(0.3)  # Allow time for video to be added
+            time.sleep(0.2)  # Allow time for video to be added
             
             # Start playing to load the video
-            self._send_vlc_command("play")
-            time.sleep(1.5)  # Longer wait to ensure first frame loads properly
+            # self._send_vlc_command("play")
+            # time.sleep(0.2)  # Longer wait to ensure first frame loads properly
             
             # Seek to beginning and pause
             self._send_vlc_command("seek 0")
-            time.sleep(0.2)
-            self._send_vlc_command("pause")
+            # time.sleep(0.2)
+            # self._send_vlc_command("pause")
             
             print(f"First frame displayed for video {self.current_video_index + 1}")
             return True
