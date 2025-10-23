@@ -123,14 +123,23 @@ class SimpleVideoPlayer:
                 '--fullscreen',     # Start in fullscreen
                 '--no-video-title-show',  # Don't show video title
                 '--no-osd',         # No on-screen display
-                '--no-audio',       # Disable audio to reduce overhead
                 '--video-on-top',   # Ensure video stays on top
                 '--no-video-deco',  # No window decorations
+                '--no-embedded-video',  # Don't embed video in interface
+                '--no-qt-privacy-ask',  # Don't ask for privacy settings
+                '--aout', 'alsa',   # Use ALSA audio output (common on Raspberry Pi)
                 '--quiet'           # Reduce console output
             ])
             
             # Create media player
             self.vlc_player = self.vlc_instance.media_player_new()
+            
+            # Explicitly set fullscreen mode
+            self.vlc_player.set_fullscreen(True)
+            
+            # Set volume to 10% (VLC volume range is 0-100)
+            self.vlc_player.audio_set_volume(50)
+            print("Audio enabled with volume set to 10%")
             
             print("VLC instance and player created successfully")
             return True
