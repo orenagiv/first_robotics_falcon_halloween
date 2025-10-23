@@ -29,6 +29,7 @@ import time
 import os
 import subprocess
 import signal
+import vlc
 
 # Global flag for graceful shutdown
 shutdown_requested = False
@@ -81,7 +82,8 @@ class SimpleVideoPlayer:
         self.video_paths = video_paths
         self.current_video_index = 0
         self.is_playing = False
-        self.vlc_process = None
+        self.vlc_instance = None
+        self.vlc_player = None
         
         # Check if video files exist
         print("Checking video files...")
@@ -105,107 +107,37 @@ class SimpleVideoPlayer:
         return True
     
     def _start_vlc_instance(self):
-        """Start a persistent VLC instance with RC interface"""
+        """Start a VLC instance using python-vlc"""
         try:
             # Check if VLC is available
             try:
-                subprocess.run(['vlc', '--version'], capture_output=True, check=True)
+                vlc.Instance()
                 print("VLC is available")
-            except (subprocess.CalledProcessError, FileNotFoundError) as e:
+            except Exception as e:
                 print(f"VLC is not available or not installed: {e}")
                 return False
             
-            # Kill any existing VLC instances first
-            self._kill_existing_vlc()
-            
-            cmd = [
-                'vlc',
-                '--fullscreen',
-                '--no-video-title-show',
-                '--no-osd',
-                '--no-audio',  # Disable audio to reduce overhead
-                '--intf', 'rc',  # Remote control interface
-                '--video-on-top',  # Ensure video stays on top
+            # Create VLC instance with appropriate options
+            self.vlc_instance = vlc.Instance([
+                '--intf', 'dummy',  # No interface
+                '--fullscreen',     # Start in fullscreen
+                '--no-video-title-show',  # Don't show video title
+                '--no-osd',         # No on-screen display
+                '--no-audio',       # Disable audio to reduce overhead
+                '--video-on-top',   # Ensure video stays on top
                 '--no-video-deco',  # No window decorations
-                '--start-paused'
-            ]
+                '--quiet'           # Reduce console output
+            ])
             
-            print(f"Starting VLC with command: {' '.join(cmd)}")
+            # Create media player
+            self.vlc_player = self.vlc_instance.media_player_new()
             
-            self.vlc_process = subprocess.Popen(
-                cmd,
-                stdin=subprocess.PIPE,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                text=True
-            )
-            
-            time.sleep(3)  # Give VLC time to start
-            
-            # Check if VLC process is still running
-            if self.vlc_process.poll() is None:
-                print("VLC process started successfully")
-                return True
-            else:
-                # VLC process died, get error output
-                try:
-                    stdout, stderr = self.vlc_process.communicate(timeout=1)
-                    print(f"VLC process failed to start. Return code: {self.vlc_process.returncode}")
-                    print(f"STDOUT: {stdout}")
-                    print(f"STDERR: {stderr}")
-                except subprocess.TimeoutExpired:
-                    print("VLC process failed to start (timeout getting output)")
-                self.vlc_process = None
-                return False
+            print("VLC instance and player created successfully")
+            return True
             
         except Exception as e:
             print(f"Error starting VLC instance: {e}")
             return False
-    
-    def _send_vlc_command(self, command):
-        """Send command to VLC via stdin"""
-        try:
-            if self.vlc_process and self.vlc_process.poll() is None:
-                self.vlc_process.stdin.write(f"{command}\n")
-                self.vlc_process.stdin.flush()
-                print(f"VLC command sent: {command}")
-                return True
-            else:
-                print(f"VLC process not available (poll result: {self.vlc_process.poll() if self.vlc_process else 'None'})")
-                return False
-        except BrokenPipeError:
-            print(f"Broken pipe when sending VLC command '{command}' - VLC may have crashed")
-            self.vlc_process = None
-            return False
-        except Exception as e:
-            print(f"Error sending VLC command '{command}': {e}")
-            return False
-    
-    def _get_video_duration(self, video_path):
-        """Get video duration in seconds using ffprobe"""
-        try:
-            cmd = [
-                'ffprobe', '-v', 'quiet', '-show_entries', 
-                'format=duration', '-of', 'default=noprint_wrappers=1:nokey=1',
-                video_path
-            ]
-            result = subprocess.run(cmd, capture_output=True, text=True)
-            if result.returncode == 0:
-                duration = float(result.stdout.strip())
-                return duration
-        except Exception as e:
-            print(f"Could not get video duration: {e}")
-        
-        # Fallback to default duration if ffprobe fails
-        return 30.0  # Default 30 seconds
-    
-    def _kill_existing_vlc(self):
-        """Kill any existing VLC processes"""
-        try:
-            subprocess.run(['pkill', '-f', 'vlc'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-            time.sleep(0.5)  # Give time for processes to die
-        except Exception:
-            pass
     
     def show_first_frame(self):
         """Show the first frame of current video and pause"""
@@ -216,20 +148,18 @@ class SimpleVideoPlayer:
         print(f"Showing first frame of video {self.current_video_index + 1}")
         
         try:
-            # Clear the playlist and add the current video
-            self._send_vlc_command("clear")
-            time.sleep(0.1)  # Small delay after clear
-            self._send_vlc_command(f"add {current_video}")
-            time.sleep(0.2)  # Allow time for video to be added
+            # Create media for current video
+            media = self.vlc_instance.media_new(current_video)
+            self.vlc_player.set_media(media)
             
-            # Start playing to load the video
-            # self._send_vlc_command("play")
-            # time.sleep(0.2)  # Longer wait to ensure first frame loads properly
+            # Start playing to load the first frame
+            self.vlc_player.play()
             
-            # Seek to beginning and pause
-            self._send_vlc_command("seek 0")
-            # time.sleep(0.2)
-            # self._send_vlc_command("pause")
+            # Wait a moment for the video to start
+            time.sleep(0.5)
+            
+            # Pause to show only the first frame
+            self.vlc_player.pause()
             
             print(f"First frame displayed for video {self.current_video_index + 1}")
             return True
@@ -252,8 +182,12 @@ class SimpleVideoPlayer:
         self.is_playing = True
         
         try:
-            # Since show_first_frame() already loaded the video and paused it, we just need to play.
-            self._send_vlc_command("play")
+            # Create media for current video
+            media = self.vlc_instance.media_new(current_video)
+            self.vlc_player.set_media(media)
+            
+            # Start playing
+            self.vlc_player.play()
             
             # Wait for video to finish playing
             self._wait_for_video_end()
@@ -269,23 +203,26 @@ class SimpleVideoPlayer:
     
     def _wait_for_video_end(self):
         """Wait for current video to finish playing"""
-        current_video = self.video_paths[self.current_video_index]
-        video_duration = self._get_video_duration(current_video)
-        print(f"Video duration: {video_duration:.1f} seconds")
+        print("Waiting for video to finish...")
         
-        # Add a small buffer to ensure video finishes completely
-        wait_time = video_duration + 2.0
-        start_time = time.time()
+        # Wait for the video to start
+        time.sleep(1)
         
         while not shutdown_requested and self.is_playing:
-            elapsed_time = time.time() - start_time
+            state = self.vlc_player.get_state()
             
-            if elapsed_time >= wait_time:
-                print("Video playback should be complete")
+            if state == vlc.State.Ended:
+                print("Video playback ended")
+                break
+            elif state == vlc.State.Error:
+                print("Video playback error")
+                break
+            elif state == vlc.State.Stopped:
+                print("Video playback stopped")
                 break
                 
-            # Check every 0.5 seconds
-            time.sleep(0.5)
+            # Check every 0.1 seconds
+            time.sleep(0.1)
     
     def _rotate_to_next_video(self):
         """Move to the next video in the sequence"""
@@ -295,27 +232,24 @@ class SimpleVideoPlayer:
     def cleanup(self):
         """Clean up resources"""
         self.is_playing = False
-        if self.vlc_process:
+        if self.vlc_player:
             try:
-                self._send_vlc_command("quit")
-                try:
-                    self.vlc_process.wait(timeout=3)
-                except subprocess.TimeoutExpired:
-                    print("VLC didn't quit gracefully, terminating...")
-                    self.vlc_process.terminate()
-                    try:
-                        self.vlc_process.wait(timeout=2)
-                    except subprocess.TimeoutExpired:
-                        print("Force killing VLC process...")
-                        self.vlc_process.kill()
+                self.vlc_player.stop()
+                self.vlc_player.release()
+                print("VLC player stopped and released")
             except Exception as e:
-                print(f"Error during VLC cleanup: {e}")
-                try:
-                    self.vlc_process.terminate()
-                except:
-                    pass
+                print(f"Error during VLC player cleanup: {e}")
             finally:
-                self.vlc_process = None
+                self.vlc_player = None
+        
+        if self.vlc_instance:
+            try:
+                self.vlc_instance.release()
+                print("VLC instance released")
+            except Exception as e:
+                print(f"Error during VLC instance cleanup: {e}")
+            finally:
+                self.vlc_instance = None
 
 def detect_motion():
     """Detect motion using PIR sensor"""
@@ -332,6 +266,15 @@ def main():
     try:
         print("Initializing Simple Halloween Video Player...")
         print(f"Python version: {subprocess.run(['python3', '--version'], capture_output=True, text=True).stdout.strip()}")
+        
+        # Check if VLC is available
+        try:
+            vlc.Instance()
+            print("VLC library is available")
+        except Exception as e:
+            print(f"Error: VLC not available. Please install VLC and python-vlc.")
+            print(f"Install with: pip install python-vlc")
+            return
         
         # Configure display resolution and orientation
         configure_display()
