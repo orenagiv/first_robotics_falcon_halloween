@@ -252,10 +252,7 @@ class SimpleVideoPlayer:
         self.is_playing = True
         
         try:
-            # Since show_first_frame() already loaded the video and paused it,
-            # we just need to seek to the beginning and resume playback
-            self._send_vlc_command("seek 0")
-            time.sleep(0.1)  # Brief pause to ensure seek completes
+            # Since show_first_frame() already loaded the video and paused it, we just need to play.
             self._send_vlc_command("play")
             
             # Wait for video to finish playing
