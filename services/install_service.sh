@@ -74,9 +74,9 @@ echo "Installing required Python packages..."
 pip3 install --user --break-system-packages opencv-python RPi.GPIO
 
 # Install VLC media player and Python VLC bindings
-echo "Installing VLC media player and Python VLC bindings..."
+echo "Installing dependencies..."
 sudo apt update
-sudo apt install -y vlc python3-vlc
+sudo apt install -y vlc python3-vlc xdotool
 
 # Copy service file to systemd directory
 echo "Installing service file..."
