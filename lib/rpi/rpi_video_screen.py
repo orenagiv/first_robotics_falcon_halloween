@@ -3,28 +3,26 @@
 # Rotates through videos, shows first frame when idle, plays on motion detection
 
 try:
-    import RPi.GPIO as GPIO
-except Exception:
-    # Allow running/testing on non-RPi systems by providing a dummy GPIO
-    class _DummyGPIO:
-        BCM = 'BCM'
-        IN = 'IN'
-
-        def setmode(self, mode):
-            print(f"DummyGPIO: setmode({mode})")
-
-        def setup(self, pin, mode):
-            print(f"DummyGPIO: setup(pin={pin}, mode={mode})")
-
-        def input(self, pin):
-            # For testing purposes, you can change this to return 1 to simulate motion
-            # or add logic to simulate motion detection
-            return 0
-
-        def cleanup(self):
-            print("DummyGPIO: cleanup()")
-
-    GPIO = _DummyGPIO()
+    from gpiozero import MotionSensor
+    PIR_AVAILABLE = True
+except ImportError:
+    # Allow running/testing on non-RPi systems by providing a dummy MotionSensor
+    print("Warning: gpiozero not available. Creating dummy MotionSensor for testing.")
+    class _DummyMotionSensor:
+        def __init__(self, pin):
+            self.pin = pin
+            print(f"DummyMotionSensor: initialized on pin {pin}")
+        
+        @property
+        def motion_detected(self):
+            # For testing purposes, you can change this to return True to simulate motion
+            return False
+        
+        def close(self):
+            print("DummyMotionSensor: closed")
+    
+    MotionSensor = _DummyMotionSensor
+    PIR_AVAILABLE = False
 
 import time
 import os
@@ -32,6 +30,12 @@ import subprocess
 import signal
 import vlc
 import sys
+
+# Add the parent directory to the path so we can import from lib
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+# Local imports
+from common.configure_displays import configure_display
 
 # Global flag for graceful shutdown
 shutdown_requested = False
@@ -42,78 +46,51 @@ def signal_handler(signum, frame):
     print(f"\nReceived signal {signum}. Shutting down gracefully...")
     shutdown_requested = True
 
-def configure_display_single():
-    """Configure display resolution for single portrait mode video"""
-    try:
-        # Set resolution to 720x1280 (portrait mode, no rotation needed)
-        subprocess.run(['xrandr', '--output', 'HDMI-1', '--mode', '720x1280'], check=True)
-        print("Display resolution set to 720x1280 (portrait)")
-    except subprocess.CalledProcessError as e:
-        print(f"Warning: Could not configure display: {e}")
-        try:
-            # Try HDMI-2 if HDMI-1 fails
-            subprocess.run(['xrandr', '--output', 'HDMI-2', '--mode', '720x1280'], check=True)
-            print("Display configured on HDMI-2")
-        except subprocess.CalledProcessError as e2:
-            print(f"Warning: Could not configure display on HDMI-2: {e2}")
-    except Exception as e:
-        print(f"Warning: Unexpected error configuring display: {e}")
-
-def configure_display_dual():
-    """Configure dual display resolution for portrait mode videos on dual screens"""
-    try:
-        # Configure first screen (HDMI-1) for left video - 720x1280 portrait
-        subprocess.run(['xrandr', '--output', 'HDMI-1', '--mode', '720x1280'], check=True)
-        print("Left display (HDMI-1) resolution set to 720x1280 (portrait)")
-        
-        # Configure second screen (HDMI-2) for right video - 720x1280 portrait
-        # Position it to the right of the first screen
-        subprocess.run(['xrandr', '--output', 'HDMI-2', '--mode', '720x1280', '--right-of', 'HDMI-1'], check=True)
-        print("Right display (HDMI-2) resolution set to 720x1280 (portrait) and positioned to the right")
-        
-    except subprocess.CalledProcessError as e:
-        print(f"Warning: Could not configure dual displays: {e}")
-        print("Attempting fallback configuration...")
-        try:
-            # Fallback: try to configure displays separately
-            subprocess.run(['xrandr', '--output', 'HDMI-1', '--mode', '720x1280'], check=True)
-            subprocess.run(['xrandr', '--output', 'HDMI-2', '--mode', '720x1280'], check=True)
-            print("Fallback display configuration applied")
-        except subprocess.CalledProcessError as e2:
-            print(f"Warning: Fallback display configuration failed: {e2}")
-    except Exception as e:
-        print(f"Warning: Unexpected error configuring displays: {e}")
-
-# GPIO setup
+# PIR Motion Sensor setup
 PIR_PIN = 14  # GPIO pin for PIR motion sensor
-GPIO.setmode(GPIO.BCM)
-GPIO.setup(PIR_PIN, GPIO.IN)
+motion_sensor = None  # Will be initialized in main()
 
 # Video configuration
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 # Single video paths
 SINGLE_VIDEO_PATHS = [
-    os.path.join(SCRIPT_DIR, "../../assets/videos/single_video_1_720x1280p.mp4"),
-    os.path.join(SCRIPT_DIR, "../../assets/videos/single_video_2_720x1280p.mp4"),
+    # os.path.join(SCRIPT_DIR, "../../assets/videos/single_video_1_720x1280p.mp4"),
+    # os.path.join(SCRIPT_DIR, "../../assets/videos/single_video_2_720x1280p.mp4"),
     os.path.join(SCRIPT_DIR, "../../assets/videos/single_video_3_720x1280p.mp4")
 ]
 
 # Dual video sets
 DUAL_VIDEO_SETS = [
     {
-        'left': os.path.join(SCRIPT_DIR, "../../assets/videos/dual_video_1_left_720x1280p.mp4"),
-        'right': os.path.join(SCRIPT_DIR, "../../assets/videos/dual_video_1_right_720x1280p.mp4")
+        'left': os.path.join(SCRIPT_DIR, "../../assets/videos/single_video_1_720x1280p.mp4"),
+        'right': os.path.join(SCRIPT_DIR, "../../assets/videos/single_video_2_720x1280p.mp4")
     },
-    {
-        'left': os.path.join(SCRIPT_DIR, "../../assets/videos/dual_video_2_left_720x1280p.mp4"),
-        'right': os.path.join(SCRIPT_DIR, "../../assets/videos/dual_video_2_right_720x1280p.mp4")
-    },
-    {
-        'left': os.path.join(SCRIPT_DIR, "../../assets/videos/dual_video_3_left_720x1280p.mp4"),
-        'right': os.path.join(SCRIPT_DIR, "../../assets/videos/dual_video_3_right_720x1280p.mp4")
-    }
+    # {
+    #     'left': os.path.join(SCRIPT_DIR, "../../assets/videos/dual_video_1_left_720x1280p.mp4"),
+    #     'right': os.path.join(SCRIPT_DIR, "../../assets/videos/dual_video_1_right_720x1280p.mp4")
+    # },
+    # {
+    #     'left': os.path.join(SCRIPT_DIR, "../../assets/videos/dual_video_2_left_720x1280p.mp4"),
+    #     'right': os.path.join(SCRIPT_DIR, "../../assets/videos/dual_video_2_right_720x1280p.mp4")
+    # },
+    # {
+    #     'left': os.path.join(SCRIPT_DIR, "../../assets/videos/dual_video_3_left_720x1280p.mp4"),
+    #     'right': os.path.join(SCRIPT_DIR, "../../assets/videos/dual_video_3_right_720x1280p.mp4")
+    # }
 ]
+
+# Debug: Print the video paths to verify they're correct
+print(f"Script directory: {SCRIPT_DIR}")
+for i, path in enumerate(SINGLE_VIDEO_PATHS):
+    print(f"Single video {i+1} path: {path}")
+    print(f"Single video {i+1} exists: {os.path.exists(path)}")
+
+for i, video_set in enumerate(DUAL_VIDEO_SETS):
+    print(f"Dual video set {i+1} left path: {video_set['left']}")
+    print(f"Dual video set {i+1} left exists: {os.path.exists(video_set['left'])}")
+    print(f"Dual video set {i+1} right path: {video_set['right']}")
+    print(f"Dual video set {i+1} right exists: {os.path.exists(video_set['right'])}")
 
 class UnifiedVideoPlayer:
     def __init__(self, mode="single"):
@@ -303,46 +280,11 @@ class UnifiedVideoPlayer:
                     
             except (subprocess.CalledProcessError, FileNotFoundError) as e:
                 print(f"xdotool positioning failed: {e}")
-                
-            # Method 2: Fallback - try using wmctrl if available
-            try:
-                # List all windows to find VLC windows
-                result = subprocess.run(['wmctrl', '-l'], capture_output=True, text=True, check=True)
-                vlc_windows = [line for line in result.stdout.split('\n') if 'vlc' in line.lower()]
-                
-                if len(vlc_windows) >= 2:
-                    # Extract window IDs and move them
-                    window_id_1 = vlc_windows[0].split()[0]
-                    window_id_2 = vlc_windows[1].split()[0]
-                    
-                    # Move windows to different screens
-                    subprocess.run(['wmctrl', '-i', '-r', window_id_1, '-e', '0,0,0,720,1280'], check=True)
-                    subprocess.run(['wmctrl', '-i', '-r', window_id_2, '-e', '0,720,0,720,1280'], check=True)
-                    print("Positioned windows using wmctrl")
-                    
-                    # Set fullscreen
-                    self.vlc_player_left.set_fullscreen(True)
-                    self.vlc_player_right.set_fullscreen(True)
-                    return True
-                    
-            except (subprocess.CalledProcessError, FileNotFoundError) as e:
-                print(f"wmctrl positioning failed: {e}")
-            
-            # Method 3: Fallback - just set fullscreen and hope for the best
-            print("Window positioning tools not available, setting fullscreen directly")
-            self.vlc_player_left.set_fullscreen(True)
-            self.vlc_player_right.set_fullscreen(True)
-            return True
+                raise Exception(f"Failed to position VLC windows on dual screens. xdotool error: {e}")
                     
         except Exception as e:
             print(f"Error in positioning videos: {e}")
-            # Still try to set fullscreen as fallback
-            try:
-                self.vlc_player_left.set_fullscreen(True)
-                self.vlc_player_right.set_fullscreen(True)
-            except:
-                pass
-            return False
+            raise Exception(f"Critical error in video positioning: {e}")
     
     def show_first_frame(self):
         """Show the first frame of current video(s) and pause"""
@@ -602,8 +544,11 @@ class UnifiedVideoPlayer:
                     self.vlc_instance_right = None
 
 def detect_motion():
-    """Detect motion using PIR sensor"""
-    return GPIO.input(PIR_PIN)
+    """Detect motion using PIR sensor with gpiozero"""
+    global motion_sensor
+    if motion_sensor is None:
+        return False
+    return motion_sensor.motion_detected
 
 def print_usage():
     """Print usage information"""
@@ -616,7 +561,7 @@ def print_usage():
 
 def main():
     """Main function"""
-    global shutdown_requested
+    global shutdown_requested, motion_sensor
     
     # Parse command line arguments
     mode = "single"  # default mode
@@ -635,6 +580,18 @@ def main():
         print(f"Initializing Unified Halloween Video Player in {mode} mode...")
         print(f"Python version: {subprocess.run(['python3', '--version'], capture_output=True, text=True).stdout.strip()}")
         
+        # Initialize PIR motion sensor
+        try:
+            motion_sensor = MotionSensor(PIR_PIN)
+            if PIR_AVAILABLE:
+                print(f"PIR motion sensor initialized on GPIO pin {PIR_PIN}")
+            else:
+                print(f"Using dummy motion sensor (gpiozero not available)")
+        except Exception as e:
+            print(f"Warning: Failed to initialize motion sensor: {e}")
+            print("Motion detection will be disabled")
+            motion_sensor = None
+        
         # Check if VLC is available
         try:
             vlc.Instance()
@@ -645,10 +602,7 @@ def main():
             return
         
         # Configure display resolution and orientation based on mode
-        if mode == "single":
-            configure_display_single()
-        else:  # dual
-            configure_display_dual()
+        configure_display(mode)
         
         # Initialize video player
         print(f"Creating video player instance in {mode} mode...")
@@ -738,7 +692,12 @@ def main():
         # Clean up
         if 'player' in locals():
             player.cleanup()
-        GPIO.cleanup()
+        if motion_sensor is not None:
+            try:
+                motion_sensor.close()
+                print("Motion sensor cleaned up")
+            except Exception as e:
+                print(f"Error cleaning up motion sensor: {e}")
         print("Cleanup complete")
 
 if __name__ == "__main__":

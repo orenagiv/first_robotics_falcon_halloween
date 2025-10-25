@@ -1,11 +1,11 @@
 #!/bin/bash
 
-# Halloween Video Player Service Installation Script
-# This script will install and configure the systemd service for the Halloween video player
+# Halloween Unified Video Player Service Installation Script
+# This script will install and configure the systemd service for the unified Halloween video player
 
 set -e
 
-echo "Installing Halloween Video Player Service..."
+echo "Installing Halloween Unified Video Player Service..."
 
 # Function to display usage
 usage() {
@@ -41,12 +41,13 @@ else
     usage
 fi
 
-# Set the Python script path based on mode
+# Set the Python script and arguments based on mode
+PYTHON_SCRIPT="rpi_video_screen.py"
 if [ "$MODE" = "single" ]; then
-    PYTHON_SCRIPT="rpi_single_screen.py"
+    SCRIPT_ARGS="single"
     echo "Installing service for SINGLE screen mode..."
 else
-    PYTHON_SCRIPT="rpi_dual_screen.py"
+    SCRIPT_ARGS="dual"
     echo "Installing service for DUAL screen mode..."
 fi
 
@@ -71,17 +72,17 @@ fi
 
 # Install required Python packages
 echo "Installing required Python packages..."
-pip3 install --user --break-system-packages opencv-python RPi.GPIO
+pip3 install --user --break-system-packages python-vlc gpiozero
 
 # Install VLC media player and Python VLC bindings
 echo "Installing dependencies..."
 sudo apt update
-sudo apt install -y vlc python3-vlc xdotool
+sudo apt install -y vlc python3-vlc xdotool wmctrl
 
-# Copy service file to systemd directory
+# Copy service file to systemd directory and update it for the unified script
 echo "Installing service file..."
-# Create a temporary service file with the correct script path
-sed "s|rpi_single_screen.py|$PYTHON_SCRIPT|g" "$PROJECT_DIR/services/$SERVICE_FILE" | sudo tee "$SERVICE_PATH" > /dev/null
+# Create a temporary service file with the correct script path and arguments
+sed "s|rpi_video_screen.py single|rpi_video_screen.py $SCRIPT_ARGS|g" "$PROJECT_DIR/services/$SERVICE_FILE" | sudo tee "$SERVICE_PATH" > /dev/null
 
 # Set proper permissions
 sudo chmod 644 "$SERVICE_PATH"
@@ -147,7 +148,7 @@ fi
 echo ""
 echo "Service installation complete!"
 echo "Mode: $MODE screen"
-echo "Script: $PYTHON_SCRIPT"
+echo "Script: $PYTHON_SCRIPT $SCRIPT_ARGS"
 echo ""
 echo "Desktop shortcuts created:"
 echo "  Single Screen - Switch to single screen mode"

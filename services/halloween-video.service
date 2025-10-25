@@ -1,5 +1,5 @@
 [Unit]
-Description=Halloween Video Player Service
+Description=Halloween Unified Video Player Service
 After=network.target graphical-session.target
 Wants=graphical-session.target
 
@@ -8,7 +8,7 @@ Type=simple
 User=volvo
 Group=volvo
 WorkingDirectory=/home/volvo/Desktop/Development/first_robotics_falcon_halloween/lib/rpi
-ExecStart=/usr/bin/python3 /home/volvo/Desktop/Development/first_robotics_falcon_halloween/lib/rpi/rpi_single_screen.py
+ExecStart=/usr/bin/python3 /home/volvo/Desktop/Development/first_robotics_falcon_halloween/lib/rpi/rpi_video_screen.py single
 Restart=always
 RestartSec=10
 StandardOutput=journal

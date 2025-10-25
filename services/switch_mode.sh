@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# Halloween Video Player Mode Switcher
-# This script allows switching between single and dual screen modes
+# Halloween Unified Video Player Mode Switcher
+# This script allows switching between single and dual screen modes using the unified video player
 
 set -e
 
@@ -51,12 +51,13 @@ else
     usage
 fi
 
-# Set the Python script path based on mode
+# Set the Python script and arguments based on mode
+PYTHON_SCRIPT="rpi_video_screen.py"
 if [ "$MODE" = "single" ]; then
-    PYTHON_SCRIPT="rpi_single_screen.py"
+    SCRIPT_ARGS="single"
     echo "Switching to SINGLE screen mode..."
 else
-    PYTHON_SCRIPT="rpi_dual_screen.py"
+    SCRIPT_ARGS="dual"
     echo "Switching to DUAL screen mode..."
 fi
 
@@ -70,9 +71,9 @@ fi
 echo "Stopping service..."
 sudo systemctl stop $SERVICE_NAME 2>/dev/null || echo "Service was not running"
 
-# Update the service file
+# Update the service file to use the unified script with the appropriate mode argument
 echo "Updating service configuration..."
-sed "s|rpi_single_screen.py|$PYTHON_SCRIPT|g; s|rpi_dual_screen.py|$PYTHON_SCRIPT|g" "$PROJECT_DIR/services/halloween-video.service" | sudo tee "$SERVICE_PATH" > /dev/null
+sudo sed -i "s|ExecStart=.*|ExecStart=/usr/bin/python3 $PROJECT_DIR/lib/rpi/$PYTHON_SCRIPT $SCRIPT_ARGS|g" "$SERVICE_PATH"
 
 # Set proper permissions
 sudo chmod 644 "$SERVICE_PATH"
@@ -88,7 +89,7 @@ sudo systemctl start $SERVICE_NAME
 echo ""
 echo "Mode switch complete!"
 echo "Mode: $MODE screen"
-echo "Script: $PYTHON_SCRIPT"
+echo "Script: $PYTHON_SCRIPT $SCRIPT_ARGS"
 echo ""
 echo "Service status:"
 sudo systemctl status $SERVICE_NAME --no-pager -l
