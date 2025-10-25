@@ -56,7 +56,7 @@ MOTION_SAMPLE_RATE = 10  # Samples per second
 MOTION_QUEUE_LEN = 1    # Number of samples to average over
 MOTION_DEBOUNCE_TIME = 0.5  # Minimum time between motion detections (seconds)
 MOTION_CONFIRMATION_COUNT = 2  # Number of consecutive positive readings required
-EXTENDED_COOLDOWN = 2  # Extra cooldown after video plays (seconds)
+MOTION_COOLDOWN = 2  # Cooldown after video plays (seconds)
 
 # Motion detection state
 motion_confirmation_counter = 0
@@ -634,7 +634,7 @@ def main():
                 print(f"  Queue length: {MOTION_QUEUE_LEN} samples")
                 print(f"  Debounce time: {MOTION_DEBOUNCE_TIME}s")
                 print(f"  Confirmation count: {MOTION_CONFIRMATION_COUNT}")
-                print(f"  Extended cooldown: {EXTENDED_COOLDOWN}s")
+                print(f"  Cooldown: {MOTION_COOLDOWN}s")
             else:
                 print(f"Using dummy motion sensor (gpiozero not available)")
         except Exception as e:
@@ -684,7 +684,6 @@ def main():
             print(f"Starting with video set {player.current_index + 1} of {len(player.video_paths)}")
         
         last_trigger_time = 0
-        cooldown_period = 3  # Base seconds to wait before allowing another trigger
         last_debug_time = 0  # Track debug output timing
         
         while not shutdown_requested:
@@ -693,13 +692,10 @@ def main():
                 motion_detected = detect_motion()
                 current_time = time.time()
                 
-                # Use extended cooldown period for more reliable operation
-                effective_cooldown = cooldown_period + EXTENDED_COOLDOWN
-                
                 # Check if motion detected and cooldown period has passed
                 if (motion_detected and 
                     not player.is_playing and 
-                    current_time - last_trigger_time > effective_cooldown):
+                    current_time - last_trigger_time > MOTION_COOLDOWN):
                     
                     if mode == "single":
                         print("Motion detected - Playing video!")
