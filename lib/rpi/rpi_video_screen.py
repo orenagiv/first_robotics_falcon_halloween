@@ -30,6 +30,9 @@ import subprocess
 import signal
 import vlc
 import sys
+import select
+import termios
+import tty
 
 # Add the parent directory to the path so we can import from lib
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -45,6 +48,25 @@ def signal_handler(signum, frame):
     global shutdown_requested
     print(f"\nReceived signal {signum}. Shutting down gracefully...")
     shutdown_requested = True
+
+def check_keyboard_input():
+    """Check for keyboard input in a non-blocking way"""
+    if select.select([sys.stdin], [], [], 0.0)[0]:
+        try:
+            # Save terminal settings
+            old_settings = termios.tcgetattr(sys.stdin)
+            tty.cbreak(sys.stdin.fileno())
+            
+            # Read a single character
+            char = sys.stdin.read(1)
+            
+            # Restore terminal settings
+            termios.tcsetattr(sys.stdin, termios.TCSADRAIN, old_settings)
+            
+            return char
+        except:
+            return None
+    return None
 
 # PIR Motion Sensor setup
 PIR_PIN = 14  # GPIO pin for PIR motion sensor
@@ -594,6 +616,10 @@ def print_usage():
     print("Usage: python3 rpi_video_screen.py [mode]")
     print("  mode: 'single' or 'dual' (default: 'single')")
     print("")
+    print("Controls:")
+    print("  ESC: Exit the program")
+    print("  Ctrl+C: Force exit")
+    print("")
     print("Examples:")
     print("  python3 rpi_video_screen.py single")
     print("  python3 rpi_video_screen.py dual")
@@ -678,6 +704,7 @@ def main():
             # Continue anyway - maybe the video will display when motion is detected
             
         print("Showing first frame(s). Waiting for motion detection...")
+        print("Press ESC at any time to exit the program.")
         if mode == "single":
             print(f"Starting with video {player.current_index + 1} of {len(player.video_paths)}")
         else:
@@ -688,6 +715,13 @@ def main():
         
         while not shutdown_requested:
             try:
+                # Check for ESC key press (ASCII 27)
+                key = check_keyboard_input()
+                if key == '\x1b':  # ESC key
+                    print("\nESC key pressed. Exiting...")
+                    shutdown_requested = True
+                    break
+                
                 # Check for motion with enhanced filtering
                 motion_detected = detect_motion()
                 current_time = time.time()
