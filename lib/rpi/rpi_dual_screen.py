@@ -9,6 +9,23 @@
 # Note: For proper dual-screen positioning, ensure X11 environment is configured for dual displays
 # The xrandr commands in configure_display() should position screens correctly
 
+# Standard library imports
+import time
+import os
+import subprocess
+import signal
+import sys
+
+# Third-party imports
+import vlc
+
+# Add the parent directory to the path so we can import from lib
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+# Local imports
+from common.configure_displays import configure_display
+
+# GPIO setup with fallback for non-RPi systems
 try:
     import RPi.GPIO as GPIO
 except Exception:
@@ -31,11 +48,6 @@ except Exception:
             print("DummyGPIO: cleanup()")
 
     GPIO = _DummyGPIO()
-import time
-import os
-import subprocess
-import signal
-import vlc
 
 # Global flag for graceful shutdown
 shutdown_requested = False
@@ -45,31 +57,6 @@ def signal_handler(signum, frame):
     global shutdown_requested
     print(f"\nReceived signal {signum}. Shutting down gracefully...")
     shutdown_requested = True
-
-def configure_display():
-    """Configure dual display resolution for portrait mode videos on dual screens"""
-    try:
-        # Configure first screen (HDMI-1) for left video - 720x1280 portrait
-        subprocess.run(['xrandr', '--output', 'HDMI-1', '--mode', '720x1280'], check=True)
-        print("Left display (HDMI-1) resolution set to 720x1280 (portrait)")
-        
-        # Configure second screen (HDMI-2) for right video - 720x1280 portrait
-        # Position it to the right of the first screen
-        subprocess.run(['xrandr', '--output', 'HDMI-2', '--mode', '720x1280', '--right-of', 'HDMI-1'], check=True)
-        print("Right display (HDMI-2) resolution set to 720x1280 (portrait) and positioned to the right")
-        
-    except subprocess.CalledProcessError as e:
-        print(f"Warning: Could not configure dual displays: {e}")
-        print("Attempting fallback configuration...")
-        try:
-            # Fallback: try to configure displays separately
-            subprocess.run(['xrandr', '--output', 'HDMI-1', '--mode', '720x1280'], check=True)
-            subprocess.run(['xrandr', '--output', 'HDMI-2', '--mode', '720x1280'], check=True)
-            print("Fallback display configuration applied")
-        except subprocess.CalledProcessError as e2:
-            print(f"Warning: Fallback display configuration failed: {e2}")
-    except Exception as e:
-        print(f"Warning: Unexpected error configuring displays: {e}")
 
 # GPIO setup
 PIR_PIN = 14  # GPIO pin for PIR motion sensor
@@ -297,12 +284,12 @@ class DualVideoPlayer:
             # Start playing to load the first frame
             self.vlc_player_left.play()
             self.vlc_player_right.play()
-            
+
             # Position windows and set fullscreen
             self._position_and_fullscreen_videos()
-            
+
             # Wait a moment for the videos to start and positioning to take effect
-            time.sleep(1.0)
+            time.sleep(0.5)
             
             # Pause to show only the first frame
             self.vlc_player_left.pause()
@@ -448,7 +435,7 @@ def main():
             return
         
         # Configure display resolution and orientation
-        configure_display()
+        configure_display('dual')
         
         # Initialize dual video player
         print("Creating dual video player instance...")
