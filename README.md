@@ -145,6 +145,27 @@ To rotate videos to portrait mode (720x1280):
 ffmpeg -i input_video_1280x720p.mp4 -vf "transpose=1" -c:a copy output_video_720x1280p.mp4
 ```
 
+## Setting the screen orientation and resolution on the Raspberry Pi
+List the available screens and modes:
+```bash
+DISPLAY=:0 xrandr
+```
+
+List just the monitors:
+```bash
+DISPLAY=:0 xrandr --listmonitors
+```
+
+Set single screen to 720x1280 resolution in portrait mode with left rotation:
+```bash
+DISPLAY=:0 xrandr --output HDMI-A-1 --mode 1280x720 --rotate left
+```
+
+Set dual screens to 720x1280 resolution in portrait mode with left rotation:
+```bash
+DISPLAY=:0 xrandr --output HDMI-A-1 --mode 1280x720 --rotate left --output HDMI-A-2 --mode 1280x720 --rotate left --right-of HDMI-A-1
+```
+
 ## Halloween Video Player Service
 This directory contains the systemd service configuration and installation scripts for the Halloween Video Player that supports both single-screen (`rpi_single_screen.py`) and dual-screen (`rpi_dual_screen.py`) modes.
 
@@ -198,7 +219,6 @@ This directory contains the systemd service configuration and installation scrip
    ```
 
 ### Switching Between Modes
-
 You can switch between single and dual screen modes without reinstalling:
 
 ```bash

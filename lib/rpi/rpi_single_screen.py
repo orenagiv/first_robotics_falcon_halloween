@@ -1,6 +1,23 @@
 # Simplified Halloween Video Player for Raspberry Pi
 # Rotates through 3 videos, shows first frame when idle, plays on motion detection
 
+# Standard library imports
+import time
+import os
+import subprocess
+import signal
+import sys
+
+# Third-party imports
+import vlc
+
+# Add the parent directory to the path so we can import from lib
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+# Local imports
+from common.configure_displays import configure_display
+
+# GPIO setup with fallback for non-RPi systems
 try:
     import RPi.GPIO as GPIO
 except Exception:
@@ -25,12 +42,6 @@ except Exception:
 
     GPIO = _DummyGPIO()
 
-import time
-import os
-import subprocess
-import signal
-import vlc
-
 # Global flag for graceful shutdown
 shutdown_requested = False
 
@@ -39,23 +50,6 @@ def signal_handler(signum, frame):
     global shutdown_requested
     print(f"\nReceived signal {signum}. Shutting down gracefully...")
     shutdown_requested = True
-
-def configure_display():
-    """Configure display resolution for portrait mode videos"""
-    try:
-        # Set resolution to 720x1280 (portrait mode, no rotation needed)
-        subprocess.run(['xrandr', '--output', 'HDMI-1', '--mode', '720x1280'], check=True)
-        print("Display resolution set to 720x1280 (portrait)")
-    except subprocess.CalledProcessError as e:
-        print(f"Warning: Could not configure display: {e}")
-        try:
-            # Try HDMI-2 if HDMI-1 fails
-            subprocess.run(['xrandr', '--output', 'HDMI-2', '--mode', '720x1280'], check=True)
-            print("Display configured on HDMI-2")
-        except subprocess.CalledProcessError as e2:
-            print(f"Warning: Could not configure display on HDMI-2: {e2}")
-    except Exception as e:
-        print(f"Warning: Unexpected error configuring display: {e}")
 
 # GPIO setup
 PIR_PIN = 14  # GPIO pin for PIR motion sensor
@@ -287,7 +281,7 @@ def main():
             return
         
         # Configure display resolution and orientation
-        configure_display()
+        configure_display('single')
         
         # Initialize video player
         print("Creating video player instance...")
