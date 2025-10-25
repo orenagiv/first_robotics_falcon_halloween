@@ -50,6 +50,18 @@ def signal_handler(signum, frame):
 PIR_PIN = 14  # GPIO pin for PIR motion sensor
 motion_sensor = None  # Will be initialized in main()
 
+# Motion detection configuration
+MOTION_THRESHOLD = 0.5  # Sensitivity: 0.0 (most sensitive) to 1.0 (least sensitive)
+MOTION_SAMPLE_RATE = 10  # Samples per second
+MOTION_QUEUE_LEN = 1    # Number of samples to average over
+MOTION_DEBOUNCE_TIME = 0.5  # Minimum time between motion detections (seconds)
+MOTION_CONFIRMATION_COUNT = 2  # Number of consecutive positive readings required
+EXTENDED_COOLDOWN = 2  # Extra cooldown after video plays (seconds)
+
+# Motion detection state
+motion_confirmation_counter = 0
+last_motion_time = 0
+
 # Video configuration
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -239,6 +251,10 @@ class UnifiedVideoPlayer:
             self.vlc_player_left.audio_set_volume(100)
             self.vlc_player_right.audio_set_volume(0)  # Mute right player
             print("Dual screen VLC instances created: Left with audio, Right muted")
+            
+            # Position windows and set fullscreen for dual mode
+            self._position_and_fullscreen_videos()
+            
             return True
             
         except Exception as e:
@@ -339,11 +355,8 @@ class UnifiedVideoPlayer:
             self.vlc_player_left.play()
             self.vlc_player_right.play()
             
-            # Position windows and set fullscreen
-            self._position_and_fullscreen_videos()
-            
-            # Wait a moment for the videos to start and positioning to take effect
-            time.sleep(1.0)
+            # Wait a moment for the videos to start
+            time.sleep(0.5)
             
             # Pause to show only the first frame
             self.vlc_player_left.pause()
@@ -414,9 +427,6 @@ class UnifiedVideoPlayer:
             # Start playing both videos simultaneously
             self.vlc_player_left.play()
             self.vlc_player_right.play()
-            
-            # Position windows and set fullscreen for playback
-            self._position_and_fullscreen_videos()
             
             # Wait for videos to finish playing
             self._wait_for_videos_end_dual()
@@ -543,12 +553,41 @@ class UnifiedVideoPlayer:
                 finally:
                     self.vlc_instance_right = None
 
-def detect_motion():
-    """Detect motion using PIR sensor with gpiozero"""
-    global motion_sensor
+def detect_motion_filtered():
+    """Enhanced motion detection with filtering and debouncing"""
+    global motion_sensor, motion_confirmation_counter, last_motion_time
+    
     if motion_sensor is None:
         return False
-    return motion_sensor.motion_detected
+    
+    current_time = time.time()
+    
+    # Check raw motion sensor
+    raw_motion = motion_sensor.motion_detected
+    
+    # Debounce: ignore rapid successive triggers
+    if current_time - last_motion_time < MOTION_DEBOUNCE_TIME:
+        return False
+    
+    if raw_motion:
+        motion_confirmation_counter += 1
+        print(f"Motion detected ({motion_confirmation_counter}/{MOTION_CONFIRMATION_COUNT})")
+        
+        # Require multiple consecutive positive readings
+        if motion_confirmation_counter >= MOTION_CONFIRMATION_COUNT:
+            last_motion_time = current_time
+            motion_confirmation_counter = 0
+            return True
+    else:
+        # Reset counter if no motion detected
+        motion_confirmation_counter = 0
+    
+    return False
+
+def detect_motion():
+    """Detect motion using PIR sensor with gpiozero"""
+    # Use the filtered version for better reliability
+    return detect_motion_filtered()
 
 def print_usage():
     """Print usage information"""
@@ -580,11 +619,22 @@ def main():
         print(f"Initializing Unified Halloween Video Player in {mode} mode...")
         print(f"Python version: {subprocess.run(['python3', '--version'], capture_output=True, text=True).stdout.strip()}")
         
-        # Initialize PIR motion sensor
+        # Initialize PIR motion sensor with configurable parameters
         try:
-            motion_sensor = MotionSensor(PIR_PIN)
+            motion_sensor = MotionSensor(
+                pin=PIR_PIN,
+                threshold=MOTION_THRESHOLD,      # Sensitivity: 0.0 (most sensitive) to 1.0 (least sensitive)
+                sample_rate=MOTION_SAMPLE_RATE,  # How often to check (samples per second)
+                queue_len=MOTION_QUEUE_LEN       # Number of samples to average over
+            )
             if PIR_AVAILABLE:
                 print(f"PIR motion sensor initialized on GPIO pin {PIR_PIN}")
+                print(f"  Threshold: {MOTION_THRESHOLD} (0.0=most sensitive, 1.0=least sensitive)")
+                print(f"  Sample rate: {MOTION_SAMPLE_RATE} samples/second")
+                print(f"  Queue length: {MOTION_QUEUE_LEN} samples")
+                print(f"  Debounce time: {MOTION_DEBOUNCE_TIME}s")
+                print(f"  Confirmation count: {MOTION_CONFIRMATION_COUNT}")
+                print(f"  Extended cooldown: {EXTENDED_COOLDOWN}s")
             else:
                 print(f"Using dummy motion sensor (gpiozero not available)")
         except Exception as e:
@@ -634,19 +684,22 @@ def main():
             print(f"Starting with video set {player.current_index + 1} of {len(player.video_paths)}")
         
         last_trigger_time = 0
-        cooldown_period = 3  # Seconds to wait before allowing another trigger
+        cooldown_period = 3  # Base seconds to wait before allowing another trigger
         last_debug_time = 0  # Track debug output timing
         
         while not shutdown_requested:
             try:
-                # Check for motion
+                # Check for motion with enhanced filtering
                 motion_detected = detect_motion()
                 current_time = time.time()
+                
+                # Use extended cooldown period for more reliable operation
+                effective_cooldown = cooldown_period + EXTENDED_COOLDOWN
                 
                 # Check if motion detected and cooldown period has passed
                 if (motion_detected and 
                     not player.is_playing and 
-                    current_time - last_trigger_time > cooldown_period):
+                    current_time - last_trigger_time > effective_cooldown):
                     
                     if mode == "single":
                         print("Motion detected - Playing video!")
