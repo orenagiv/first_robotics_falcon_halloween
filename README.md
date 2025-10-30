@@ -13,12 +13,56 @@ The project has two versions: a prototype using an Arduino and a more advanced v
 #### Raspberry Pi Version
 🎯 Setup Github Repo and VSCode Raspberry Pi remote-host (SSH) environment.  
 🎯 Prepare HD videos for both dual-screens and single-screen.  
-🚧 Implement the Python scripts for Raspberry Pi version.  
-🚧 Integrate a camera to take a picture at the "scary" moment.  
-🤌 Test.  
-🤌 Packaging & Scenery.  
+🎯 Implement the Python scripts for Raspberry Pi version.  
+🎯 Integrate a camera to take a picture at the "scary" moment.  
+🎯 Test.  
+🎯 Packaging & Scenery.  
 💅 Polish & Fingernails.  
 
+#### Workshop
+🎯 Listen to Oren's [Overview](https://docs.google.com/presentation/d/1ODLzKySMeVuc3C9cUVcIUOXuEKrhXkYr1822pmj-B8k/edit?usp=sharing).
+🚧 Work in pairs and follow the [Getting Started](#getting-started) instructions below.
+🤌 Make changes to the README.md on your branch and push the changes.
+🤌 Create a Pull Request in Github between your branch and `main`.
+🤌 Listen to Oren's explanation about [Project Management and Team Work](https://github.com/users/orenagiv/projects/1/views/1).
+🤌 Listen to Oren's explanation about Code Review and [Pull Requests](https://github.com/orenagiv/first_robotics_falcon_halloween/pulls) workflow.
+
+## GETTING STARTED
+### Step by Step Instructions
+- Install VSCode: https://code.visualstudio.com/
+- Enable VSCode Extensions:
+  - Remote - SSH (by Microsoft).
+  - Python (by Microsoft).
+  - GitHub Copilot (by GitHub).
+  - GitHub Copilot Chat (by GitHub).
+  - Git Graph (by mhutchie).
+- Install Git: https://git-scm.com/downloads
+- For Windows users: configure Git Bash as the default terminal in VSCode:
+  - Open VSCode
+  - Go to File > Preferences > Settings
+  - Search for "terminal integrated shell"
+  - Set the path to Gitbash executable (e.g., `C:\Program Files\Git\bin\bash.exe`)
+- Install Python 3 on your laptop:
+  - Windows users: https://www.python.org/downloads/windows/
+  - Mac users: Python 3 is pre-installed on macOS.  
+    You can check by running `python3 --version` in Terminal.  
+    If not installed, use Homebrew: `brew install python3`.  
+- Install RealVNC Viewer on your laptop: https://www.realvnc.com/en/connect/download/viewer/
+- Create a local "Development" folder on your laptop.
+- Sign-up to Github if you don't have an account.
+  - Send Oren your Github username to be added as a collaborator to the repository.
+- Clone [this repository](https://github.com/orenagiv/first_robotics_falcon_halloween) to your local machine:
+  - From VSCode, open the Command Palette (`F1` or `Ctrl+Shift+P` / `Cmd+Shift+P` on Mac).
+  - Type `Git: Clone` and select it.
+  - Paste the repository URL and choose your "Development" folder as the destination.
+- Create a new Branch for your work and "checkout" (= switch to it):
+  - Open Git Graph in VScode.
+  - Right click on "Main" branch > Create a new branch `feature/{{your-name}}` and switch to it (double click).
+- From the VSCode menu - choose File > Open Folder > select the `Development/first_robotics_falcon_halloween` folder in VSCode.
+- From the VSCode menu - choose File > Save Workspace As... and save it as `first_robotics_falcon_halloween.code-workspace` in the Development folder.
+- Turn on the Raspberry Pi and connect it to a monitor, keyboard, and mouse.
+  - Follow the [Raspberry Pi Version > Remote SSH Setup](#raspberry-pi-version-remote-ssh-setup) instructions below.
+  - Follow the [Raspberry Pi Version > Syncing files to Raspberry Pi](#raspberry-pi-version-syncing-files-to-raspberry-pi) instructions below.
 
 ## PROTOTYPE VERSION
 The initial (quick and dirty) prototype is an Arduino project that uses an Ultrasonic sensor to detect a user getting close to a frame and trigger a spooky video to play on a connected monitor.
@@ -82,7 +126,7 @@ sudo systemctl start vncserver-x11-serviced.service
 ```
 - Install VNC Viewer on your Mac from: https://www.realvnc.com/en/connect/download/viewer/
 
-### Remote SSH Setup
+## Remote SSH Setup
 - Connect to your Raspberry Pi with a physical keyboard, mouse and monitor.
 - Open a terminal on the Raspberry Pi.
 - Check the username on your Raspberry Pi (default is "pi"):
@@ -123,7 +167,7 @@ ssh -i ~/.ssh/raspberry_pi.key pi@raspberrypi.local
 ```
 - A new VSCode window will open connected to your Raspberry Pi.
 
-### Syncing files to Raspberry Pi
+## Syncing files to Raspberry Pi
 - Use `rsync` to copy files from your Mac to Raspberry Pi:
 ```
 rsync -av --exclude='.*' -e "ssh -i ~/keys/raspberry_pi.key" ./ pi@raspberrypi.local:/path/to/remote/Development/first_robotics_falcon_halloween/
@@ -131,18 +175,6 @@ rsync -av --exclude='.*' -e "ssh -i ~/keys/raspberry_pi.key" ./ pi@raspberrypi.l
 - To make the rsync also delete older files - use the `--delete` flag:
 ```
 rsync -av --delete --exclude='.*' -e "ssh -i ~/keys/raspberry_pi.key" ./ pi@raspberrypi.local:/path/to/remote/Development/first_robotics_falcon_halloween/
-```
-
-### Optimize Videos Performance on Raspberry Pi
-- Make sure your Raspberry Pi was set to resolution of 1280x720.
-- Use `ffmpeg` to convert videos to 1280x720 resolution for better performance on the Raspberry Pi:
-```bash
-ffmpeg -i input_video.mp4 -vf scale=1280:720 -c:a copy output_video_1280x720p.mp4
-```
-
-To rotate videos to portrait mode (720x1280):
-```bash
-ffmpeg -i input_video_1280x720p.mp4 -vf "transpose=1" -c:a copy output_video_720x1280p.mp4
 ```
 
 ## Setting the screen orientation and resolution on the Raspberry Pi
@@ -177,7 +209,6 @@ This directory contains the systemd service configuration and installation scrip
 - **Systemd Service**: Runs automatically on boot with auto-restart capability
 
 ### Files
-
 - `halloween-video.service` - The systemd service configuration file (template)
 - `install_service.sh` - Script to install and configure the service for single or dual mode
 - `uninstall_service.sh` - Script to remove the service
@@ -185,7 +216,6 @@ This directory contains the systemd service configuration and installation scrip
 - `README.md` - This documentation file
 
 ### Installation on Raspberry Pi
-
 1. First, ensure your project is copied to the Raspberry Pi at `/home/volvo/Desktop/Development/first_robotics_falcon_halloween/`
 
 2. SSH into your Raspberry Pi:
@@ -232,7 +262,6 @@ Or run without arguments to be prompted for your choice:
 ```
 
 ### Service Management Commands
-
 Once installed, you can manage the service using these commands:
 
 #### Start the service
@@ -285,9 +314,7 @@ To remove the service:
    ```
 
 ### Service Configuration
-
 The service is configured with the following key features:
-
 - **Auto-restart**: The service will automatically restart if it crashes
 - **Display support**: Configured to work with the Raspberry Pi's display (DISPLAY=:0)
 - **GPIO access**: User has access to GPIO pins for the motion sensor
@@ -295,7 +322,6 @@ The service is configured with the following key features:
 - **Boot startup**: Service starts automatically when the system boots to graphical mode
 
 ### Troubleshooting
-
 #### Check if the service is running
 ```bash
 sudo systemctl status halloween-video.service
@@ -320,4 +346,17 @@ sudo journalctl -u halloween-video.service -f
 
 #### Manual service file location
 The service file is installed at: `/etc/systemd/system/halloween-video.service`
+
+## Optimizations
+### Optimize Videos Performance on Raspberry Pi
+- Make sure your Raspberry Pi was set to resolution of 1280x720.
+- Use `ffmpeg` to convert videos to 1280x720 resolution for better performance on the Raspberry Pi:
+```bash
+ffmpeg -i input_video.mp4 -vf scale=1280:720 -c:a copy output_video_1280x720p.mp4
+```
+
+To rotate videos to portrait mode (720x1280):
+```bash
+ffmpeg -i input_video_1280x720p.mp4 -vf "transpose=1" -c:a copy output_video_720x1280p.mp4
+```
 
