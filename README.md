@@ -22,7 +22,7 @@ The project has two versions: a prototype using an Arduino and a more advanced v
 #### Workshop
 🎯 Listen to Oren's [Overview](https://docs.google.com/presentation/d/1ODLzKySMeVuc3C9cUVcIUOXuEKrhXkYr1822pmj-B8k/edit?usp=sharing).
 🚧 Work in pairs and follow the [Getting Started](#getting-started) instructions below.
-🤌 Make changes to the README.md on your branch and push the changes.
+🤌 Make changes to the README.md on your branch > commit > and push the changes.
 🤌 Create a Pull Request in Github between your branch and `main`.
 🤌 Listen to Oren's explanation about [Project Management and Team Work](https://github.com/users/orenagiv/projects/1/views/1).
 🤌 Listen to Oren's explanation about Code Review and [Pull Requests](https://github.com/orenagiv/first_robotics_falcon_halloween/pulls) workflow.
