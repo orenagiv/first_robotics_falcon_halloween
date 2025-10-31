@@ -67,7 +67,7 @@ Follow these instructions to set up your development environment and get started
     ```
     git --version
     ```
-- Create a local "Development" folder on your laptop.
+- Create a local "Development" folder on your laptop (e.g. `C:\Development`).
 - Sign-in to [Github](https://github.com/).
   - Create an account if you don't have one.
   - Send Oren your Github username to be added as a collaborator to the repository.
