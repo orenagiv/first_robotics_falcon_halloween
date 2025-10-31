@@ -29,6 +29,8 @@ The project has two versions: a prototype using an Arduino and a more advanced v
 🤌 Listen to Oren's explanation about [Project Management and Team Work](https://github.com/users/orenagiv/projects/1/views/1).  
 
 ## GETTING STARTED
+Follow these instructions to set up your development environment and get started with the project.
+
 ### Step by Step Instructions
 #### Phase 1
 - Install VSCode: https://code.visualstudio.com/
