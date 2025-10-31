@@ -42,13 +42,6 @@ Follow these instructions to set up your development environment and get started
   - Remote - SSH (by Microsoft).
   - Python (by Microsoft).
   - Git Graph (by mhutchie).
-- Install Python 3 on your laptop:
-  - Mac users: Python 3 is pre-installed on macOS.  
-    You can check by running `python3 --version` in Terminal.  
-    If not installed, use Homebrew: `brew install python3`.
-  - Windows users: https://apps.microsoft.com/detail/9nq7512cxl7t?hl=en-US&gl=IL  
-    Click "y" on each prompt during installation.
-    Verify it's working by running `python3 --version` in Git Bash terminal.
 - Install "RealVNC Viewer" on your laptop: https://www.realvnc.com/en/connect/download/viewer/
 - Install Git: https://git-scm.com/install/
   - For Mac users: Git is usually pre-installed.  
@@ -67,6 +60,13 @@ Follow these instructions to set up your development environment and get started
     ```
     git --version
     ```
+- Install Python 3 on your laptop:
+  - Mac users: Python 3 is pre-installed on macOS.  
+    You can check by running `python3 --version` in Terminal.  
+    If not installed, use Homebrew: `brew install python3`.
+  - Windows users: https://apps.microsoft.com/detail/9nq7512cxl7t?hl=en-US&gl=IL  
+    Click "y" on each prompt during installation.
+    Verify it's working by running `python3 --version` in Git Bash terminal.
 - Create a local "Development" folder on your laptop (e.g. `C:\Development`).
 - Sign-in to [Github](https://github.com/).
   - Create an account if you don't have one.
