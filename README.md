@@ -30,6 +30,7 @@ The project has two versions: a prototype using an Arduino and a more advanced v
 
 ## GETTING STARTED
 ### Step by Step Instructions
+#### Phase 1
 - Install VSCode: https://code.visualstudio.com/
 - Enable [GitHub Copilot](https://code.visualstudio.com/docs/copilot/setup) extensions in VSCode:
   - Goto the bottom-right and click the GitHub Copilot icon (or use the Command Palette `F1` / `Ctrl+Shift+P` / `Cmd+Shift+P` on Mac and type `Install GitHub Copilot`).
@@ -39,6 +40,14 @@ The project has two versions: a prototype using an Arduino and a more advanced v
   - Remote - SSH (by Microsoft).
   - Python (by Microsoft).
   - Git Graph (by mhutchie).
+- Install Python 3 on your laptop:
+  - Mac users: Python 3 is pre-installed on macOS.  
+    You can check by running `python3 --version` in Terminal.  
+    If not installed, use Homebrew: `brew install python3`.
+  - Windows users: https://apps.microsoft.com/detail/9nq7512cxl7t?hl=en-US&gl=IL  
+    Click "y" on each prompt during installation.
+    Verify it's working by running `python3 --version` in Git Bash terminal.
+- Install "RealVNC Viewer" on your laptop: https://www.realvnc.com/en/connect/download/viewer/
 - Install Git: https://git-scm.com/install/
   - For Mac users: Git is usually pre-installed.  
     You can check by running `git --version` in Terminal.  
@@ -49,30 +58,36 @@ The project has two versions: a prototype using an Arduino and a more advanced v
       - Open the command palette (`F1` or `Ctrl+Shift+P` / `Cmd+Shift+P` on Mac).
       - Type `Terminal: Select Default Profile` and select it.
       - Choose `Git Bash` from the list.
-  - Verify it's working - from VSCode menu choose Terminal > New Terminal and run:
+  - **[ ! ] Close VSCode and re-open it.**
+  - Verify it's working by clicking the "Source Control" icon in the left sidebar (shortcut: Ctrl+Shift+G / Cmd+Shift+G on Mac).
+  - Verify it's working in the terminal:  
+    From VSCode menu choose Terminal > New Terminal and run:
     ```
     git --version
     ```
-- Install Python 3 on your laptop:
-  - Mac users: Python 3 is pre-installed on macOS.  
-    You can check by running `python3 --version` in Terminal.  
-    If not installed, use Homebrew: `brew install python3`.
-  - Windows users: https://apps.microsoft.com/detail/9nq7512cxl7t?hl=en-US&gl=IL  
-    Click "y" on each prompt during installation.
-    Verify it's working by running `python3 --version` in Git Bash terminal.
-- Install "RealVNC Viewer" on your laptop: https://www.realvnc.com/en/connect/download/viewer/
 - Create a local "Development" folder on your laptop.
-- Sign-up to Github if you don't have an account.
+- Sign-in to [Github](https://github.com/).
+  - Create an account if you don't have one.
   - Send Oren your Github username to be added as a collaborator to the repository.
 - Clone [this repository](https://github.com/orenagiv/first_robotics_falcon_halloween) to your local machine:
   - From VSCode, open the Command Palette (`F1` or `Ctrl+Shift+P` / `Cmd+Shift+P` on Mac).
   - Type `Git: Clone` and select it.
-  - Paste the repository URL and choose your "Development" folder as the destination.
+  - Paste the repository URL.
+  - Choose your "Development" folder as the destination.
+  - Once cloned - it will ask you to open the repository - click "Open".
+  - Select "Trust the authors of the files in the parent folder" and click "Yes, I trust the authors".
+  - **Note**  
+    If you missed it, you can add the folder from the VSCode menu - choose File > Open Folder > select the `Development/first_robotics_falcon_halloween` folder in VSCode.
+- Save the VSCode Workspace:  
+  Choose "File > Save Workspace As..." > Navigate to your Development folder > save it as `first_robotics_falcon_halloween`.  
+  Now, you can always open the project by choosing "File > Open Workspace from File..." and selecting the saved workspace file.
 - Create a new Branch for your work and "checkout" (= switch to it):
-  - Open Git Graph in VScode.
-  - Right click on "Main" branch > Create a new branch `feature/{{your-name}}` and switch to it (double click).
-- From the VSCode menu - choose File > Open Folder > select the `Development/first_robotics_falcon_halloween` folder in VSCode.
-- From the VSCode menu - choose File > Save Workspace As... and save it as `first_robotics_falcon_halloween.code-workspace` in the Development folder.
+  - Open Git Graph in VScode (click "Git Graph" from the bottom status bar).
+  - Right click on "Main" branch and select "Create a new branch".
+    **Note:** you need to right-click on the "text", and **not** the "chips" tags.
+  - Name it `feature/{{your-name}}` and switch to it (double click).
+
+#### Phase 2
 - Turn on the Raspberry Pi and connect it to a monitor, keyboard, and mouse.
   - Follow the [Raspberry Pi Version > Remote SSH Setup](#raspberry-pi-version-remote-ssh-setup) instructions below.
   - Follow the [Raspberry Pi Version > Syncing files to Raspberry Pi](#raspberry-pi-version-syncing-files-to-raspberry-pi) instructions below.
