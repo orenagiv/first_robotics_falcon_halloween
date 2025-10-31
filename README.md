@@ -31,20 +31,31 @@ The project has two versions: a prototype using an Arduino and a more advanced v
 ## GETTING STARTED
 ### Step by Step Instructions
 - Install VSCode: https://code.visualstudio.com/
-- Enable VSCode Extensions:
+- Enable [GitHub Copilot](https://code.visualstudio.com/docs/copilot/setup) extensions in VSCode:
+  - Goto the bottom-right and click the GitHub Copilot icon (or use the Command Palette `F1` / `Ctrl+Shift+P` / `Cmd+Shift+P` on Mac and type `Install GitHub Copilot`).
+  - Follow the prompts to authorize VSCode with your GitHub account.
+  - Goto extensions and make sure `GitHub Copilot` and `GitHub Copilot Chat` extensions are installed and enabled.
+- Install additional VSCode Extensions:
   - Remote - SSH (by Microsoft).
   - Python (by Microsoft).
-  - GitHub Copilot (by GitHub).
-  - GitHub Copilot Chat (by GitHub).
   - Git Graph (by mhutchie).
-- Install Git: https://git-scm.com/downloads
-- For Windows users: configure Git Bash as the default terminal in VSCode:
-  - Open VSCode
-  - Go to File > Preferences > Settings
-  - Search for "terminal integrated shell"
-  - Set the path to Gitbash executable (e.g., `C:\Program Files\Git\bin\bash.exe`)
+- Install Git: https://git-scm.com/install/
+  - For Mac users: Git is usually pre-installed.  
+    You can check by running `git --version` in Terminal.  
+    If not installed, use Homebrew: `brew install git`.
+  - For Windows users:
+    - During installation, select all the default options during installation.
+    - Configure Git Bash as the default terminal in VSCode:
+      - Open the command palette (`F1` or `Ctrl+Shift+P` / `Cmd+Shift+P` on Mac).
+      - Type `Terminal: Select Default Profile` and select it.
+      - Choose `Git Bash` from the list.
+  - Verify it's working - from VSCode menu choose Terminal > New Terminal and run:
+    ```
+    git --version
+    ```
 - Install Python 3 on your laptop:
-  - Windows users: https://www.python.org/downloads/windows/
+  - Windows users: https://apps.microsoft.com/detail/9nq7512cxl7t?hl=en-US&gl=IL
+    - Choose "Python Install Manager".
   - Mac users: Python 3 is pre-installed on macOS.  
     You can check by running `python3 --version` in Terminal.  
     If not installed, use Homebrew: `brew install python3`.  
