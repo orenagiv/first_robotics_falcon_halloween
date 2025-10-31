@@ -4,6 +4,8 @@
 The Halloween Frame is an interactive spooky display that plays a scary video when someone approaches it.  
 The project has two versions: a prototype using an Arduino and a more advanced version planned for Raspberry Pi.
 
+New example...
+
 ### TRACKER
 #### Arduino Prototype
 🎯 Quick & Dirty Arduino sketch to detect the distance of approaching users using Ultrasonic sensor.  
